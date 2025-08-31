@@ -1,0 +1,12 @@
+{
+    "size": [
+        "dimension",
+        "measurement",
+        "fit"
+    ],
+    "color": [
+        "shade",
+        "hue",
+        "tone"
+    ]
+}

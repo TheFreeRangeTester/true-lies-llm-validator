@@ -1,0 +1,11 @@
+{
+    "kwh": [
+        "kilowatt hours",
+        "kilowatts",
+        "kilo watts"
+    ],
+    "residential": [
+        "home",
+        "household"
+    ]
+}

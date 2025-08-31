@@ -1,0 +1,11 @@
+{
+    "balance": [
+        "account balance",
+        "funds",
+        "total amount"
+    ],
+    "term_deposit": [
+        "fixed deposit",
+        "time deposit"
+    ]
+}
