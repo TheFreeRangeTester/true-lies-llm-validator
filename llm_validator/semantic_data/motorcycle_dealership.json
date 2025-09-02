@@ -1,0 +1,28 @@
+{
+    "motorcycle": [
+        "bike",
+        "motorcycle",
+        "motorbike",
+        "scooter"
+    ],
+    "warranty": [
+        "warranty period",
+        "guarantee",
+        "warranty coverage"
+    ],
+    "condition": [
+        "state",
+        "quality",
+        "status"
+    ],
+    "mileage": [
+        "miles",
+        "odometer",
+        "distance traveled"
+    ],
+    "price": [
+        "cost",
+        "amount",
+        "selling price"
+    ]
+}

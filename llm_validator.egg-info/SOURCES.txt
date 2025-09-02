@@ -1,4 +1,5 @@
 README.md
+pyproject.toml
 setup.py
 llm_validator/__init__.py
 llm_validator/config.py
@@ -8,6 +9,12 @@ llm_validator/utils.py
 llm_validator.egg-info/PKG-INFO
 llm_validator.egg-info/SOURCES.txt
 llm_validator.egg-info/dependency_links.txt
+llm_validator.egg-info/requires.txt
 llm_validator.egg-info/top_level.txt
+llm_validator/semantic_data/banking.json
+llm_validator/semantic_data/energy.json
+llm_validator/semantic_data/insurance.json
+llm_validator/semantic_data/motorcycle_dealership.json
+llm_validator/semantic_data/retail.json
 tests/test_core.py
 tests/test_utils.py

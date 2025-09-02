@@ -2,10 +2,59 @@
     "balance": [
         "account balance",
         "funds",
-        "total amount"
+        "total amount",
+        "available balance",
+        "current balance",
+        "remaining funds"
     ],
     "term_deposit": [
         "fixed deposit",
         "time deposit"
+    ],
+    "account_type": [
+        "account",
+        "type of account",
+        "acct",
+        "kind of account",
+        "category of account"
+    ],
+    "savings": [
+        "savings account",
+        "deposit account",
+        "term savings",
+        "savings deposit",
+        "bank savings",
+        "personal savings"
+    ],
+    "checking": [
+        "current account",
+        "chequing",
+        "checking account",
+        "checking acct",
+        "bank account"
+    ],
+    "credit": [
+        "loan",
+        "borrowing",
+        "credit line",
+        "credit facility",
+        "line of credit",
+        "credit account"
+    ],
+    "debit": [
+        "withdrawal",
+        "deduction",
+        "charge",
+        "bank debit",
+        "transaction deduction",
+        "withdraw"
+    ],
+    "interest": [
+        "yield",
+        "rate",
+        "return",
+        "interest rate",
+        "apy",
+        "annual percentage yield"
     ]
 }

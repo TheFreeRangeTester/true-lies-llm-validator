@@ -1,0 +1,38 @@
+{
+    "auto insurance": [
+        "car insurance",
+        "automobile insurance",
+        "vehicle insurance",
+        "motor insurance",
+        "auto policy",
+        "car policy",
+        "automobile policy",
+        "vehicle policy",
+        "motor policy",
+        "auto coverage",
+        "car coverage",
+        "automobile coverage",
+        "vehicle coverage"
+    ],
+    "liability": [
+        "liability coverage",
+        "liability protection",
+        "third party coverage"
+    ],
+    "comprehensive": [
+        "comprehensive coverage",
+        "full coverage",
+        "complete protection"
+    ],
+    "premium": [
+        "monthly payment",
+        "monthly cost",
+        "payment amount",
+        "cost per month"
+    ],
+    "policy": [
+        "insurance policy",
+        "coverage policy",
+        "insurance plan"
+    ]
+}

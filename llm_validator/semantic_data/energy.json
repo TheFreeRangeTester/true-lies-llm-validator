@@ -2,10 +2,22 @@
     "kwh": [
         "kilowatt hours",
         "kilowatts",
-        "kilo watts"
+        "kilo watts",
+        "kwhs",
+        "kilowatt-hrs"
     ],
     "residential": [
         "home",
-        "household"
+        "household",
+        "domestic",
+        "apartment"
+    ],
+    "consumption": [
+        "used",
+        "usage"
+    ],
+    "account": [
+        "home",
+        "residential account"
     ]
 }

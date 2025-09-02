@@ -94,3 +94,82 @@ def test_retail_polarity_positive():
     reference = "Item is available for purchase"
     result = core.validate_polarity(candidate, reference)
     assert result["polarity_match"] is True
+
+# --------------------------
+# validate_all tests
+# --------------------------
+def test_validate_all_pass():
+    candidate = "balance: 100, account_type: savings"
+    reference_values = {"balance": "100", "account_type": "savings"}
+    reference_text = "Your savings account balance is 100"
+
+    result = core.validate_all(candidate, reference_values, reference_text, domain="banking")
+
+    # Debug detallado por componente
+    print("\n=== DEBUG validate_all ===")
+    print("Overall is_valid:", result.get("is_valid"))
+
+    # Factual
+    factual = result.get("factual")
+    if factual:
+        print("\n[Factual Validation]")
+        for key, match in factual.items():
+            print(f"  Field '{key}': match={match}")
+
+    # Semantic
+    semantic = result.get("semantic")
+    if semantic:
+        print("\n[Semantic Validation]")
+        print("is_valid:", semantic.get("is_valid"))
+        print("similarity_score:", semantic.get("similarity_score"))
+
+    # Polarity
+    polarity = result.get("polarity")
+    if polarity:
+        print("\n[Polarity Validation]")
+        print("polarity_match:", polarity.get("polarity_match"))
+        if not polarity.get("polarity_match"):
+            print("failure_reason:", polarity.get("failure_reason"))
+
+    print("=========================\n")
+
+    # Asserts finales
+    assert result["is_valid"] is True
+
+def test_validate_all_factual_fail():
+    candidate = "balance: 200, account_type: savings"
+    reference_values = {"balance": "100", "account_type": "savings"}
+    reference_text = "Your savings account balance is 100"
+    result = core.validate_all(candidate, reference_values, reference_text, domain="banking")
+    assert result["is_valid"] is False
+    assert result["factual"]["is_valid"] is False
+
+def test_validate_all_semantic_fail():
+    candidate = "balance: 100, account_type: savings"
+    reference_values = {"balance": "100", "account_type": "savings"}
+    reference_text = "Completely unrelated text"
+    result = core.validate_all(candidate, reference_values, reference_text, domain="banking")
+    assert result["is_valid"] is False
+    assert result["semantic"]["is_valid"] is False
+
+def test_validate_all_polarity_fail():
+    candidate = "You cannot withdraw funds"
+    reference_values = {}
+    reference_text = "You can withdraw funds"
+    result = core.validate_all(candidate, reference_values, reference_text)
+    assert result["is_valid"] is False
+    assert result["polarity"]["polarity_match"] is False
+
+
+# --------------------------
+# Custom polarity direction test
+# --------------------------
+def test_polarity_reference_negative_candidate_positive():
+    """
+    Test that polarity validation fails when reference is negative and candidate is positive.
+    """
+    candidate = "You can withdraw funds at any time"
+    reference = "You cannot withdraw funds"
+    result = core.validate_polarity(candidate, reference)
+    assert result["polarity_match"] is False
+    assert "Polarity mismatch" in result["failure_reason"]
