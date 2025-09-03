@@ -1,39 +1,41 @@
-# LLM Validator
+# True Lies - Separating truth from AI fiction
 
-Una librería Python para validar respuestas de LLMs (Large Language Models) contra datos de referencia, con validación factual, semántica y de polaridad.
+A Python library for validating LLM (Large Language Model) responses against reference data, with factual, semantic, and polarity validation.
 
-## 🚀 Características Principales
+## 🚀 Key Features
 
-- **Validación Factual**: Extrae y valida campos específicos de las respuestas del LLM
-- **Validación Semántica**: Compara similitud semántica con texto de referencia
-- **Validación de Polaridad**: Verifica que el tono/actitud sea consistente
-- **Mapeo Semántico**: Soporte para sinónimos y términos específicos del dominio
-- **Configuración Flexible**: Campos personalizables y patrones de extracción
-- **Múltiples Dominios**: Seguros, motocicletas, retail, banca y más
+- **Factual Validation**: Extracts and validates specific fields from LLM responses
+- **Semantic Validation**: Compares semantic similarity with reference text
+- **Polarity Validation**: Verifies consistent tone/attitude
+- **Generic Extractors**: Reusable extractors for common cases (currency, date, categorical, etc.)
+- **Semantic Mapping**: Support for synonyms and domain-specific terms
+- **Flexible Configuration**: Customizable fields and extraction patterns
+- **Multiple Domains**: Insurance, motorcycles, retail, banking and more
+- **Domain Agnostic**: Works with any type of content
 
-## 📦 Instalación
+## 📦 Installation
 
 ```bash
-pip install llm-validator
+pip install true-lies-validator
 ```
 
-## 🎯 Uso Rápido
+## 🎯 Quick Start
 
-### Concepto de "Facts"
+### "Facts" Concept
 
-Los **facts** son los valores que **SI O SI** deben estar presentes en la respuesta del LLM. Estos se expanden automáticamente usando el **semantic mapping** para incluir sinónimos y variaciones.
+**Facts** are the values that **MUST** be present in the LLM response. These are automatically expanded using **semantic mapping** to include synonyms and variations.
 
-**Ejemplo:**
+**Example:**
 - **Fact**: `"coverage_type": "auto insurance"`
 - **Semantic Mapping**: `"auto insurance": ["car insurance", "automobile insurance"]`
-- **Resultado**: El sistema buscará "auto insurance", "car insurance" o "automobile insurance" en el candidate
+- **Result**: The system will search for "auto insurance", "car insurance" or "automobile insurance" in the candidate
 
-### API Simplificada (Recomendada)
+### Simplified API (Recommended)
 
 ```python
-from llm_validator.runner import validate_llm_response
+from true_lies import create_scenario, validate_llm_candidates
 
-# 1. FACTS - Los valores que SI O SI deben estar en el candidate
+# 1. FACTS - Values that MUST be in the candidate
 facts = {
     "policy_number": "POL-2024-001",
     "premium": "$850.00",
@@ -42,75 +44,153 @@ facts = {
     "expiry_date": "December 31, 2024"
 }
 
-# 2. REFERENCE TEXT - Texto de referencia para comparación semántica
+# 2. REFERENCE TEXT - Reference text for semantic comparison
 reference_text = "Your auto insurance policy #POL-2024-001 has a premium of $850.00 per month..."
 
-# 3. SEMANTIC MAPPING - Sinónimos que expanden los facts para validación
+# 3. SEMANTIC MAPPING - Synonyms that expand facts for validation
 semantic_mapping = {
     "auto insurance": ["car insurance", "automobile insurance"],
     "liability": ["liability coverage", "liability protection"],
     "premium": ["monthly payment", "monthly cost"]
 }
 
-# 4. CANDIDATES - Respuestas del LLM a validar
+# 4. Create scenario
+scenario = create_scenario(
+    facts={
+        'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
+        'premium': {'extractor': 'money', 'expected': '850.00'},
+        'coverage_type': {'extractor': 'categorical', 'expected': 'auto insurance'},
+        'liability_limit': {'extractor': 'money', 'expected': '100000'},
+        'expiry_date': {'extractor': 'date', 'expected': 'December 31, 2024'}
+    },
+    semantic_reference=reference_text,
+    semantic_mappings=semantic_mapping
+)
+
+# 5. CANDIDATES - LLM responses to validate
 candidates = [
     "Policy POL-2024-001 covers your automobile with monthly payments of $850.00...",
     "Your car insurance policy POL-2024-001 costs $850 monthly...",
     "Auto policy #POL-2024-001 has a $850.00 monthly premium..."
 ]
 
-# 5. VALIDAR
-results = validate_llm_response(
-    facts=facts,
-    reference_text=reference_text,
+# 6. VALIDATE
+results = validate_llm_candidates(
+    scenario=scenario,
     candidates=candidates,
-    semantic_mapping=semantic_mapping,
     threshold=0.7
 )
 ```
 
-## 🔧 Configuraciones Avanzadas
+## 🎯 Generic Extractors (New!)
 
-### Usando Dominios Predefinidos
+The library includes reusable generic extractors that simplify configuration for common cases:
+
+### Available Extractors
 
 ```python
-# Usar mapeo semántico basado en dominio
-results = validate_llm_response(
-    facts=facts,
-    reference_text=reference_text,
-    candidates=candidates,
-    domain="insurance",  # Carga semantic_data/insurance.json
-    threshold=0.7
-)
+from true_lies.utils import create_field_config_with_extractor
+
+# Available generic extractors (truly domain agnostic):
+extractors = {
+    'currency': 'Extracts currency values ($1,234.56)',
+    'currency_all': 'Extracts all currency values from text',
+    'usd_currency': 'Extracts specific USD values (USD 27, dollars 100)',
+    'percentage': 'Extracts percentages (12.34%)',
+    'date': 'Extracts dates (DD/MM/YYYY, December 31, 2024)',
+    'categorical': 'Extracts categorical values based on synonyms',
+    'regex': 'Extracts using custom regex patterns',
+    'number': 'Extracts general numbers (integers or decimals)',
+    'hours': 'Extracts hour values (3 hours, 12 hours)',
+    'email': 'Extracts email addresses',
+    'phone': 'Extracts phone numbers',
+    'id': 'Extracts generic IDs (configurable with pattern)',
+    'product_name': 'Extracts product names generically',
+    'vehicle_model': 'Extracts vehicle models generically',
+    'distance': 'Extracts distance values (miles, km, meters, etc.)',
+    'duration': 'Extracts duration values (months, years, days, etc.)',
+}
 ```
 
-### Configuración de Campos Personalizada
+### Usage Examples
+
+#### Method 1: Generic Extractors (Simplest)
 
 ```python
-# Configuración personalizada para extracción de campos
+# Use generic extractors for simple cases
 field_configs = {
-    "stock": {
-        "name": "stock",
-        "patterns": [
-            r'(\d+)\s+units?\s+available',
-            r'in\s+stock\s+with\s+(\d+)',
-            r'we\s+have\s+(\d+)\s+units?'
-        ]
-    }
+    "price": create_field_config_with_extractor(
+        "price",
+        "currency",
+        expected_value="$999.99"
+    ),
+    "stock": create_field_config_with_extractor(
+        "stock",
+        "number",
+        expected_value="25"
+    ),
+    "product": create_field_config_with_extractor(
+        "product",
+        "categorical",
+        expected_value="iPhone 15 Pro"
+    )
 }
 
-results = validate_llm_response(
-    facts=facts,
-    reference_text=reference_text,
+results = validate_llm_candidates(
+    scenario=scenario,
     candidates=candidates,
-    field_configs=field_configs,
     threshold=0.7
 )
 ```
 
-## 📊 Resultados
+#### Method 2: Specific Patterns (Advanced)
 
-La función devuelve un diccionario con información detallada:
+```python
+# Use specific patterns for complex cases
+field_configs = {
+    "product_name": create_field_config(
+        "product_name",
+        patterns=[
+            r'(iPhone\s+\d+(?:\s+Pro)?(?:\s+Max)?)',
+            r'(Samsung\s+Galaxy\s+\w+)',
+            r'(MacBook\s+(?:Pro|Air)\s+\w+)'
+        ]
+    )
+}
+
+results = validate_llm_candidates(
+    scenario=scenario,
+    candidates=candidates,
+    threshold=0.7
+)
+```
+
+#### Method 3: Hybrid (Best of Both Worlds)
+
+```python
+# Combine generic extractors with specific patterns
+field_configs = {
+    # Use generic extractor for simple cases
+    "price": create_field_config_with_extractor(
+        "price",
+        "currency",
+        expected_value="$999.99"
+    ),
+    # Use specific patterns for complex cases
+    "product_name": create_field_config(
+        "product_name",
+        patterns=[
+            r'(iPhone\s+\d+(?:\s+Pro)?(?:\s+Max)?)',
+            r'(Samsung\s+Galaxy\s+\w+)',
+            r'(MacBook\s+(?:Pro|Air)\s+\w+)'
+        ]
+    )
+}
+```
+
+## 📊 Results
+
+The function returns a dictionary with detailed information:
 
 ```python
 {
@@ -134,133 +214,76 @@ La función devuelve un diccionario con información detallada:
             "is_valid": True
         }
     ],
-    "facts": {...},  # Los facts originales que se validaron
+    "facts": {...},  # Original facts that were validated
     "reference_text": "..."
 }
 ```
 
-## 🏗️ Dominios Soportados
+## 🏗️ Supported Domains
 
-### Seguros (`insurance`)
-- `policy_number`: Números de póliza
-- `premium`: Primas mensuales
-- `coverage_type`: Tipos de cobertura
-- `liability_limit`: Límites de responsabilidad
-- `expiry_date`: Fechas de expiración
+### Insurance (`insurance`)
+- `policy_number`: Policy numbers
+- `premium`: Monthly premiums
+- `coverage_type`: Coverage types
+- `liability_limit`: Liability limits
+- `expiry_date`: Expiration dates
 
-### Motocicletas (`motorcycle_dealership`)
-- `motorcycle_model`: Modelos de motocicletas
-- `price`: Precios
-- `mileage`: Kilometraje
-- `warranty`: Garantías
-- `condition`: Condición
+### Motorcycles (`motorcycle_dealership`)
+- `motorcycle_model`: Motorcycle models
+- `price`: Prices
+- `mileage`: Mileage
+- `warranty`: Warranties
+- `condition`: Condition
 
 ### Retail (`retail`)
-- `product_name`: Nombres de productos
-- `stock`: Inventario
-- `price`: Precios
-- `color`: Colores
+- `product_name`: Product names
+- `price`: Prices
+- `stock`: Stock levels
+- `brand`: Brands
+- `category`: Categories
 
-### Banca (`banking`)
-- `account_type`: Tipos de cuenta
-- `balance`: Saldos
-- `interest_rate`: Tasas de interés
-- `account_number`: Números de cuenta
+### Banking (`banking`)
+- `account_number`: Account numbers
+- `balance`: Account balances
+- `transaction_amount`: Transaction amounts
+- `account_type`: Account types
 
-## 🎨 Ejemplos Completos
+### Energy (`energy`)
+- `meter_number`: Meter numbers
+- `consumption`: Consumption values
+- `billing_period`: Billing periods
+- `rate_type`: Rate types
 
-### Ejemplo: Validación de Seguros
+## 🔍 Enhanced Semantic Validation
+
+Semantic validation includes:
+
+- **Token Overlap**: Normalized token comparison
+- **Sequence Similarity**: Sequence similarity using difflib
+- **Semantic Boost**: Bonus for synonym matches
+- **Weighted Scoring**: Higher weight for key fact tokens
+
+### Semantic Scoring
 
 ```python
-from llm_validator.runner import validate_llm_response
+# Token weights:
+# - Fact tokens: weight 3.0
+# - Semantic synonyms: weight 2.0  
+# - Other tokens: weight 1.0
 
-# Configuración para seguros
-facts = {
-    "policy_number": "POL-2024-001",
-    "premium": "$850.00",
-    "coverage_type": "auto insurance",
-    "liability_limit": "$100,000",
-    "expiry_date": "December 31, 2024"
-}
-
-reference_text = "Your auto insurance policy #POL-2024-001 has a premium of $850.00 per month..."
-
-semantic_mapping = {
-    "auto insurance": ["car insurance", "automobile insurance"],
-    "liability": ["liability coverage", "liability protection"],
-    "comprehensive": ["comprehensive coverage", "full coverage"],
-    "premium": ["monthly payment", "monthly cost"],
-    "policy": ["insurance policy", "coverage policy"]
-}
-
-candidates = [
-    "Policy POL-2024-001 covers your automobile with monthly payments of $850.00...",
-    "Your car insurance policy POL-2024-001 costs $850 monthly...",
-    "Auto policy #POL-2024-001 has a $850.00 monthly premium..."
-]
-
-results = validate_llm_response(
-    facts=facts,
-    reference_text=reference_text,
-    candidates=candidates,
-    semantic_mapping=semantic_mapping,
-    threshold=0.7
-)
+# Final score = (token_score + seq_score) / 2 + semantic_boost
 ```
 
-### Ejemplo: Validación de Inventario
+## 🔧 Individual API
+
+### validate_llm_candidates()
+
+To validate a single candidate with all validation types:
 
 ```python
-# Configuración para motocicletas
-facts = {
-    "motorcycle_model": "Honda CBR 600RR",
-    "price": "$12,500",
-    "mileage": "1500",
-    "warranty": "6-month",
-    "condition": "excellent"
-}
+from true_lies import create_scenario, validate_llm_candidates
 
-reference_text = "The Honda CBR 600RR is available for $12,500..."
-
-results = validate_llm_response(
-    facts=facts,
-    reference_text=reference_text,
-    candidates=candidates,
-    domain="motorcycle_dealership",  # Usa mapeo predefinido
-    threshold=0.7
-)
-```
-
-## 🔍 Validación Semántica Mejorada
-
-La validación semántica incluye:
-
-- **Token Overlap**: Comparación de tokens normalizados
-- **Sequence Similarity**: Similitud de secuencia usando difflib
-- **Semantic Boost**: Bonus por coincidencias de sinónimos
-- **Weighted Scoring**: Peso mayor para tokens de hechos clave
-
-### Scoring Semántico
-
-```python
-# Pesos de tokens:
-# - Tokens de hechos (facts): peso 3.0
-# - Sinónimos semánticos: peso 2.0  
-# - Otros tokens: peso 1.0
-
-# Score final = (token_score + seq_score) / 2 + semantic_boost
-```
-
-## 🔧 API Individual
-
-### validate_all()
-
-Para validar un solo candidate con todos los tipos de validación:
-
-```python
-from llm_validator import validate_all
-
-# Facts que SI O SI deben estar en el candidate
+# Facts that MUST be in the candidate
 facts = {
     "policy_number": "POL-2024-001",
     "premium": "$850.00",
@@ -271,78 +294,184 @@ reference_text = "Your auto insurance policy #POL-2024-001 has a premium of $850
 
 candidate = "Policy POL-2024-001 covers your automobile with monthly payments of $850.00"
 
-# Semantic mapping para expandir los facts
+# Semantic mapping to expand facts
 semantic_mapping = {
     "auto insurance": ["car insurance", "automobile insurance"],
     "premium": ["monthly payment", "monthly cost"]
 }
 
-result = validate_all(
-    candidate_text=candidate,
-    facts=facts,  # ✅ Usa 'facts' en lugar de 'reference_values'
-    reference_text=reference_text,
-    semantic_mapping=semantic_mapping,
+# Create scenario
+scenario = create_scenario(
+    facts={
+        'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
+        'premium': {'extractor': 'money', 'expected': '850.00'},
+        'coverage_type': {'extractor': 'categorical', 'expected': 'auto insurance'}
+    },
+    semantic_reference=reference_text,
+    semantic_mappings=semantic_mapping
+)
+
+# Validate
+results = validate_llm_candidates(
+    scenario=scenario,
+    candidates=[candidate],
     threshold=0.7
 )
 ```
 
-## 🛠️ API Legacy
+## 🔄 Migration Guide
 
-Para compatibilidad con versiones anteriores:
+### Migrating from Specific Patterns to Generic Extractors
+
+#### Before (v0.2.0):
+```python
+from true_lies.utils import create_field_config
+
+field_configs = {
+    "price": create_field_config(
+        "price",
+        patterns=[r'\$(\d+(?:,\d{3})*(?:\.\d{2})?)']
+    )
+}
+```
+
+#### After (v0.4.0+):
+```python
+from true_lies.utils import create_field_config_with_extractor
+
+field_configs = {
+    "price": create_field_config_with_extractor(
+        "price",
+        "currency",
+        expected_value="$999.99"
+    )
+}
+```
+
+## 📝 Examples
+
+### Example 1: Insurance Policy Validation
 
 ```python
-from llm_validator.runner import run_validation_scenario
+# Configuration for insurance policies
+facts = {
+    "policy_number": "POL-2024-001",
+    "premium": "$850",
+    "coverage": "auto"
+}
 
-results = run_validation_scenario(
-    scenario_name="insurance_policy",
-    reference_text=reference_text,
-    reference_values=facts,
+reference_text = "Your auto insurance policy POL-2024-001 has a premium of $850..."
+
+candidates = [
+    "Policy POL-2024-001 covers your automobile with monthly payments of $850.00...",
+    "Your car insurance policy POL-2024-001 costs $850 monthly...",
+    "Auto policy #POL-2024-001 has a $850.00 monthly premium..."
+]
+
+# Create scenario
+scenario = create_scenario(
+    facts={
+        'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
+        'premium': {'extractor': 'money', 'expected': '850'},
+        'coverage': {'extractor': 'categorical', 'expected': 'auto'}
+    },
+    semantic_reference=reference_text,
+    semantic_mappings={}
+)
+
+results = validate_llm_candidates(
+    scenario=scenario,
     candidates=candidates,
-    threshold=0.7,
-    domain="insurance"
+    threshold=0.7
 )
 ```
 
-## 📁 Estructura del Proyecto
+### Example 2: Retail Inventory Validation
 
+```python
+# Configuration for retail products
+facts = {
+    "product_name": "iPhone 15 Pro",
+    "stock": "25",
+    "price": "$999.99",
+    "color": "Space Black"
+}
+
+field_configs = {
+    "product_name": create_field_config_with_extractor(
+        "product_name",
+        "categorical",
+        expected_value="iPhone 15 Pro",
+        patterns={
+            "iPhone 15 Pro": ["iPhone 15 Pro", "iPhone15Pro", "iPhone 15Pro"],
+            "Samsung Galaxy S24": ["Samsung Galaxy S24", "Galaxy S24", "S24"]
+        }
+    ),
+    "stock": create_field_config_with_extractor(
+        "stock",
+        "number",
+        expected_value="25"
+    ),
+    "price": create_field_config_with_extractor(
+        "price",
+        "currency",
+        expected_value="$999.99"
+    ),
+    "color": create_field_config_with_extractor(
+        "color",
+        "categorical",
+        expected_value="Space Black",
+        patterns={
+            "Space Black": ["Space Black", "black", "space black"],
+            "Space Gray": ["Space Gray", "gray", "space gray"],
+            "Silver": ["Silver", "silver"]
+        }
+    )
+}
+
+reference_text = "The iPhone 15 Pro is currently in stock with 25 units available..."
+
+results = validate_llm_candidates(
+    scenario=scenario,
+    candidates=candidates,
+    threshold=0.7
+)
 ```
-llm_validator/
-├── __init__.py
-├── core.py              # Funciones principales de validación
-├── runner.py            # API de ejecución y reportes
-├── utils.py             # Utilidades y extracción de campos
-└── semantic_data/       # Mapeos semánticos por dominio
-    ├── insurance.json
-    ├── motorcycle_dealership.json
-    ├── retail.json
-    └── banking.json
+
+### Example: Inventory Validation
+
+```python
+# Configuration for motorcycles
+facts = {
+    "motorcycle_model": "Honda CBR 600RR",
+    "price": "$12,500",
+    "mileage": "1500",
+    "warranty": "6-month",
+    "condition": "excellent"
+}
+
+reference_text = "The Honda CBR 600RR is available for $12,500..."
+
+results = validate_llm_candidates(
+    scenario=scenario,
+    candidates=candidates,
+    threshold=0.7
+)
 ```
 
-## 🤝 Contribuir
+## 🤝 Contributing
 
-1. Fork el repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+We welcome contributions! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
-## 📄 Licencia
+## 📄 License
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆕 Changelog
+## 🙏 Acknowledgments
 
-### v0.2.0 - API Mejorada
-- ✅ Nueva función `validate_llm_response()` más intuitiva
-- ✅ Parámetro `facts` en lugar de `reference_values` para mayor claridad
-- ✅ Soporte mejorado para mapeos semánticos que expanden los facts
-- ✅ Scoring semántico con boost por sinónimos
-- ✅ Mejor formato de resultados con emojis
-- ✅ Configuraciones de campos personalizables
-- ✅ Dominios predefinidos para diferentes industrias
+- NLTK for natural language processing capabilities
+- The open source community for inspiration and feedback
 
-### v0.1.0 - Versión Inicial
-- ✅ Validación factual básica
-- ✅ Validación semántica
-- ✅ Validación de polaridad
-- ✅ API legacy con `run_validation_scenario()`
+---
+
+**True Lies - Where AI meets reality** 🎭
