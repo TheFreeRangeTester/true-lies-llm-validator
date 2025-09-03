@@ -87,23 +87,39 @@ from true_lies.utils import create_field_config_with_extractor
 
 # Available generic extractors (truly domain agnostic):
 extractors = {
-    'currency': 'Extracts currency values ($1,234.56)',
-    'currency_all': 'Extracts all currency values from text',
-    'usd_currency': 'Extracts specific USD values (USD 27, dollars 100)',
-    'percentage': 'Extracts percentages (12.34%)',
-    'date': 'Extracts dates (DD/MM/YYYY, December 31, 2024)',
-    'categorical': 'Extracts categorical values based on synonyms',
-    'regex': 'Extracts using custom regex patterns',
+    'money': 'Extracts currency values ($1,234.56, USD 27, 100 dollars)',
     'number': 'Extracts general numbers (integers or decimals)',
+    'date': 'Extracts dates (DD/MM/YYYY, December 31, 2024)',
     'hours': 'Extracts hour values (3 hours, 12 hours)',
     'email': 'Extracts email addresses',
     'phone': 'Extracts phone numbers',
-    'id': 'Extracts generic IDs (configurable with pattern)',
-    'product_name': 'Extracts product names generically',
-    'vehicle_model': 'Extracts vehicle models generically',
-    'distance': 'Extracts distance values (miles, km, meters, etc.)',
-    'duration': 'Extracts duration values (months, years, days, etc.)',
+    'categorical': 'Extracts categorical values based on synonyms and patterns',
+    'regex': 'Extracts using custom regex patterns for complex cases'
 }
+
+### When to Use Each Extractor
+
+**🎯 Simple Cases (Use these first):**
+- **`money`**: Currency values ($1,234.56, USD 27, 100 dollars)
+- **`number`**: General numbers (25, 3.14, 1000)
+- **`date`**: Dates (December 31, 2024, 31/12/2024)
+- **`hours`**: Time values (3 hours, 12 hours)
+- **`email`**: Email addresses
+- **`phone`**: Phone numbers
+
+**🔧 Complex Cases (When simple extractors aren't enough):**
+- **`categorical`**: Values with synonyms or variations
+  ```python
+  'product': {'extractor': 'categorical', 'expected': 'iPhone 15 Pro', 
+              'patterns': {'iPhone 15 Pro': ['iPhone 15 Pro', 'iPhone15Pro', 'iPhone 15Pro']}}
+  ```
+- **`regex`**: Custom patterns for complex extraction
+  ```python
+  'policy_id': {'extractor': 'regex', 'expected': 'POL-2024-001', 
+                'patterns': r'POL-\d{4}-\d{3}'}
+  ```
+
+**💡 Pro Tip**: Start with simple extractors (`money`, `number`, `date`) and only use `categorical` or `regex` when you need more control.
 ```
 
 ### Usage Examples
@@ -115,7 +131,7 @@ extractors = {
 field_configs = {
     "price": create_field_config_with_extractor(
         "price",
-        "currency",
+        "money",
         expected_value="$999.99"
     ),
     "stock": create_field_config_with_extractor(
@@ -167,7 +183,7 @@ field_configs = {
     # Use generic extractor for simple cases
     "price": create_field_config_with_extractor(
         "price",
-        "currency",
+        "money",
         expected_value="$999.99"
     ),
     # Use specific patterns for complex cases
@@ -332,7 +348,7 @@ from true_lies.utils import create_field_config_with_extractor
 field_configs = {
     "price": create_field_config_with_extractor(
         "price",
-        "currency",
+        "money",
         expected_value="$999.99"
     )
 }
@@ -379,7 +395,7 @@ results = validate_llm_candidates(
 facts = {
     'product_name': {'extractor': 'categorical', 'expected': 'iPhone 15 Pro'},
     'stock': {'extractor': 'number', 'expected': '25'},
-    'price': {'extractor': 'currency', 'expected': '999.99'},
+    'price': {'extractor': 'money', 'expected': '999.99'},
     'color': {'extractor': 'categorical', 'expected': 'Space Black'}
 }
 
@@ -405,7 +421,7 @@ results = validate_llm_candidates(
 # Configuration for motorcycles
 facts = {
     'motorcycle_model': {'extractor': 'categorical', 'expected': 'Honda CBR 600RR'},
-    'price': {'extractor': 'currency', 'expected': '12500'},
+    'price': {'extractor': 'money', 'expected': '12500'},
     'mileage': {'extractor': 'number', 'expected': '1500'},
     'warranty': {'extractor': 'categorical', 'expected': '6-month'},
     'condition': {'extractor': 'categorical', 'expected': 'excellent'}
