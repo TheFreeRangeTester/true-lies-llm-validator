@@ -35,13 +35,13 @@ pip install true-lies-validator
 ```python
 from true_lies import create_scenario, validate_llm_candidates
 
-# 1. FACTS - Values that MUST be in the candidate
+# 1. FACTS - Values that MUST be in the candidate (with extractors)
 facts = {
-    "policy_number": "POL-2024-001",
-    "premium": "$850.00",
-    "coverage_type": "auto insurance",
-    "liability_limit": "$100,000",
-    "expiry_date": "December 31, 2024"
+    'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
+    'premium': {'extractor': 'money', 'expected': '850.00'},
+    'coverage_type': {'extractor': 'categorical', 'expected': 'auto insurance'},
+    'liability_limit': {'extractor': 'money', 'expected': '100000'},
+    'expiry_date': {'extractor': 'date', 'expected': 'December 31, 2024'}
 }
 
 # 2. REFERENCE TEXT - Reference text for semantic comparison
@@ -56,13 +56,7 @@ semantic_mapping = {
 
 # 4. Create scenario
 scenario = create_scenario(
-    facts={
-        'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
-        'premium': {'extractor': 'money', 'expected': '850.00'},
-        'coverage_type': {'extractor': 'categorical', 'expected': 'auto insurance'},
-        'liability_limit': {'extractor': 'money', 'expected': '100000'},
-        'expiry_date': {'extractor': 'date', 'expected': 'December 31, 2024'}
-    },
+    facts=facts,
     semantic_reference=reference_text,
     semantic_mappings=semantic_mapping
 )
@@ -283,11 +277,11 @@ To validate a single candidate with all validation types:
 ```python
 from true_lies import create_scenario, validate_llm_candidates
 
-# Facts that MUST be in the candidate
+# Facts that MUST be in the candidate (with extractors)
 facts = {
-    "policy_number": "POL-2024-001",
-    "premium": "$850.00",
-    "coverage_type": "auto insurance"
+    'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
+    'premium': {'extractor': 'money', 'expected': '850.00'},
+    'coverage_type': {'extractor': 'categorical', 'expected': 'auto insurance'}
 }
 
 reference_text = "Your auto insurance policy #POL-2024-001 has a premium of $850.00"
@@ -302,11 +296,7 @@ semantic_mapping = {
 
 # Create scenario
 scenario = create_scenario(
-    facts={
-        'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
-        'premium': {'extractor': 'money', 'expected': '850.00'},
-        'coverage_type': {'extractor': 'categorical', 'expected': 'auto insurance'}
-    },
+    facts=facts,
     semantic_reference=reference_text,
     semantic_mappings=semantic_mapping
 )
@@ -355,9 +345,9 @@ field_configs = {
 ```python
 # Configuration for insurance policies
 facts = {
-    "policy_number": "POL-2024-001",
-    "premium": "$850",
-    "coverage": "auto"
+    'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
+    'premium': {'extractor': 'money', 'expected': '850'},
+    'coverage': {'extractor': 'categorical', 'expected': 'auto'}
 }
 
 reference_text = "Your auto insurance policy POL-2024-001 has a premium of $850..."
@@ -370,11 +360,7 @@ candidates = [
 
 # Create scenario
 scenario = create_scenario(
-    facts={
-        'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
-        'premium': {'extractor': 'money', 'expected': '850'},
-        'coverage': {'extractor': 'categorical', 'expected': 'auto'}
-    },
+    facts=facts,
     semantic_reference=reference_text,
     semantic_mappings={}
 )
@@ -391,45 +377,20 @@ results = validate_llm_candidates(
 ```python
 # Configuration for retail products
 facts = {
-    "product_name": "iPhone 15 Pro",
-    "stock": "25",
-    "price": "$999.99",
-    "color": "Space Black"
-}
-
-field_configs = {
-    "product_name": create_field_config_with_extractor(
-        "product_name",
-        "categorical",
-        expected_value="iPhone 15 Pro",
-        patterns={
-            "iPhone 15 Pro": ["iPhone 15 Pro", "iPhone15Pro", "iPhone 15Pro"],
-            "Samsung Galaxy S24": ["Samsung Galaxy S24", "Galaxy S24", "S24"]
-        }
-    ),
-    "stock": create_field_config_with_extractor(
-        "stock",
-        "number",
-        expected_value="25"
-    ),
-    "price": create_field_config_with_extractor(
-        "price",
-        "currency",
-        expected_value="$999.99"
-    ),
-    "color": create_field_config_with_extractor(
-        "color",
-        "categorical",
-        expected_value="Space Black",
-        patterns={
-            "Space Black": ["Space Black", "black", "space black"],
-            "Space Gray": ["Space Gray", "gray", "space gray"],
-            "Silver": ["Silver", "silver"]
-        }
-    )
+    'product_name': {'extractor': 'categorical', 'expected': 'iPhone 15 Pro'},
+    'stock': {'extractor': 'number', 'expected': '25'},
+    'price': {'extractor': 'currency', 'expected': '999.99'},
+    'color': {'extractor': 'categorical', 'expected': 'Space Black'}
 }
 
 reference_text = "The iPhone 15 Pro is currently in stock with 25 units available..."
+
+# Create scenario
+scenario = create_scenario(
+    facts=facts,
+    semantic_reference=reference_text,
+    semantic_mappings={}
+)
 
 results = validate_llm_candidates(
     scenario=scenario,
@@ -443,14 +404,21 @@ results = validate_llm_candidates(
 ```python
 # Configuration for motorcycles
 facts = {
-    "motorcycle_model": "Honda CBR 600RR",
-    "price": "$12,500",
-    "mileage": "1500",
-    "warranty": "6-month",
-    "condition": "excellent"
+    'motorcycle_model': {'extractor': 'categorical', 'expected': 'Honda CBR 600RR'},
+    'price': {'extractor': 'currency', 'expected': '12500'},
+    'mileage': {'extractor': 'number', 'expected': '1500'},
+    'warranty': {'extractor': 'categorical', 'expected': '6-month'},
+    'condition': {'extractor': 'categorical', 'expected': 'excellent'}
 }
 
 reference_text = "The Honda CBR 600RR is available for $12,500..."
+
+# Create scenario
+scenario = create_scenario(
+    facts=facts,
+    semantic_reference=reference_text,
+    semantic_mappings={}
+)
 
 results = validate_llm_candidates(
     scenario=scenario,
