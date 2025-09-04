@@ -55,21 +55,26 @@ def detect_polarity(text):
     Returns:
         str: 'positive', 'negative', o 'neutral'
     """
+    import re
+    
     if not isinstance(text, str):
         return 'neutral'
     
     text_lower = text.lower()
     
-    # Priorizar patrones negativos (más específicos)
-    if any(pattern in text_lower for pattern in POLARITY_PATTERNS['negative']):
+    # Dividir en palabras completas para evitar falsos positivos con subcadenas
+    words = re.findall(r'\b\w+\b', text_lower)
+    
+    # Priorizar patrones negativos (más específicos) - usando palabras completas
+    if any(word in POLARITY_PATTERNS['negative'] for word in words):
         return 'negative'
     
-    # Luego positivos
-    if any(pattern in text_lower for pattern in POLARITY_PATTERNS['positive']):
+    # Luego positivos - usando palabras completas
+    if any(word in POLARITY_PATTERNS['positive'] for word in words):
         return 'positive'
     
-    # Finalmente neutrales
-    if any(pattern in text_lower for pattern in POLARITY_PATTERNS['neutral']):
+    # Finalmente neutrales - usando palabras completas
+    if any(word in POLARITY_PATTERNS['neutral'] for word in words):
         return 'neutral'
     
     return 'neutral'
