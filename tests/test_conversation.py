@@ -307,6 +307,176 @@ class TestConversationValidator(unittest.TestCase):
         self.assertEqual(result['total_facts'], 1)
         self.assertFalse(result['salary_retained'])
         self.assertEqual(result['salary_reason'], 'Fact not found in conversation context')
+    
+    def test_detect_email_facts(self):
+        """Test de detección de emails."""
+        # Setup
+        self.conv.add_turn(
+            user_input="My email is john@example.com",
+            bot_response="Noted",
+            expected_facts={'email': 'john@example.com'}
+        )
+        
+        # Test detección de email
+        result = self.conv.validate_retention(
+            response="I'll send the details to john@example.com",
+            facts_to_check=['email']
+        )
+        self.assertTrue(result['email_retained'])
+        
+        # Test email incorrecto
+        result = self.conv.validate_retention(
+            response="I'll send the details to jane@example.com",
+            facts_to_check=['email']
+        )
+        self.assertFalse(result['email_retained'])
+    
+    def test_detect_phone_facts(self):
+        """Test de detección de teléfonos."""
+        # Setup
+        self.conv.add_turn(
+            user_input="My phone is (555) 123-4567",
+            bot_response="Noted",
+            expected_facts={'phone': '(555) 123-4567'}
+        )
+        
+        # Test detección de teléfono
+        result = self.conv.validate_retention(
+            response="I'll call you at (555) 123-4567",
+            facts_to_check=['phone']
+        )
+        self.assertTrue(result['phone_retained'])
+        
+        # Test teléfono incorrecto
+        result = self.conv.validate_retention(
+            response="I'll call you at (555) 987-6543",
+            facts_to_check=['phone']
+        )
+        self.assertFalse(result['phone_retained'])
+    
+    def test_add_turn_and_report(self):
+        """Test del método add_turn_and_report."""
+        # Capturar output para verificar que se imprime
+        import io
+        import sys
+        from contextlib import redirect_stdout
+        
+        captured_output = io.StringIO()
+        with redirect_stdout(captured_output):
+            self.conv.add_turn_and_report(
+                user_input="I'm John Doe",
+                bot_response="Hello John!",
+                expected_facts={'name': 'John Doe'},
+                title="Test Turn"
+            )
+        
+        output = captured_output.getvalue()
+        
+        # Verificar que se agregó el turno
+        self.assertEqual(len(self.conv.turn_history), 1)
+        self.assertEqual(len(self.conv.conversation_facts), 1)
+        self.assertEqual(self.conv.conversation_facts['name'], 'John Doe')
+        
+        # Verificar que se imprimió el reporte
+        self.assertIn("Test Turn", output)
+        self.assertIn("I'm John Doe", output)
+        self.assertIn("Hello John!", output)
+    
+    def test_validate_and_report(self):
+        """Test del método validate_and_report."""
+        # Setup
+        self.conv.add_turn(
+            user_input="I'm John Doe",
+            bot_response="Hello John!",
+            expected_facts={'name': 'John Doe'}
+        )
+        
+        # Capturar output para verificar que se imprime
+        import io
+        import sys
+        from contextlib import redirect_stdout
+        
+        captured_output = io.StringIO()
+        with redirect_stdout(captured_output):
+            result = self.conv.validate_and_report(
+                response="John, your application is ready",
+                facts_to_check=['name'],
+                title="Test Validation"
+            )
+        
+        output = captured_output.getvalue()
+        
+        # Verificar que se validó correctamente
+        self.assertEqual(result['retention_score'], 1.0)
+        self.assertTrue(result['name_retained'])
+        
+        # Verificar que se imprimió el reporte
+        self.assertIn("Test Validation", output)
+        self.assertIn("John, your application is ready", output)
+        self.assertIn("Retention Score: 1.00", output)
+    
+    def test_print_conversation_summary(self):
+        """Test del método print_conversation_summary."""
+        # Setup
+        self.conv.add_turn(
+            user_input="I'm John Doe",
+            bot_response="Hello John!",
+            expected_facts={'name': 'John Doe'}
+        )
+        
+        # Capturar output para verificar que se imprime
+        import io
+        import sys
+        from contextlib import redirect_stdout
+        
+        captured_output = io.StringIO()
+        with redirect_stdout(captured_output):
+            self.conv.print_conversation_summary("Test Summary")
+        
+        output = captured_output.getvalue()
+        
+        # Verificar que se imprimió el resumen
+        self.assertIn("Test Summary", output)
+        self.assertIn("Total de turnos: 1", output)
+        self.assertIn("Total de facts: 1", output)
+        self.assertIn("name: John Doe", output)
+    
+    def test_print_retention_report(self):
+        """Test del método print_retention_report."""
+        # Setup
+        self.conv.add_turn(
+            user_input="I'm John Doe",
+            bot_response="Hello John!",
+            expected_facts={'name': 'John Doe'}
+        )
+        
+        # Validar retención
+        retention = self.conv.validate_retention(
+            response="John, your application is ready",
+            facts_to_check=['name']
+        )
+        
+        # Capturar output para verificar que se imprime
+        import io
+        import sys
+        from contextlib import redirect_stdout
+        
+        captured_output = io.StringIO()
+        with redirect_stdout(captured_output):
+            self.conv.print_retention_report(
+                retention_results=retention,
+                facts_to_check=['name'],
+                response="John, your application is ready",
+                title="Test Retention Report"
+            )
+        
+        output = captured_output.getvalue()
+        
+        # Verificar que se imprimió el reporte
+        self.assertIn("Test Retention Report", output)
+        self.assertIn("John, your application is ready", output)
+        self.assertIn("Retention Score: 1.00", output)
+        self.assertIn("✅ name:", output)
 
 
 class TestConversationValidatorIntegration(unittest.TestCase):
