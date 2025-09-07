@@ -53,6 +53,7 @@ from .extractors import EXTRACTORS
 from .utils import extract_fact
 from .polarity import POLARITY_PATTERNS, detect_polarity
 from .semantic import apply_semantic_mappings, calculate_semantic_similarity
+from .conversation import ConversationValidator
 
 # API pública
 __all__ = [
@@ -71,10 +72,13 @@ __all__ = [
     
     # Semántica
     'apply_semantic_mappings',
-    'calculate_semantic_similarity'
+    'calculate_semantic_similarity',
+    
+    # Validación Multiturno
+    'ConversationValidator'
 ]
 
 # Información del paquete
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 __author__ = "True Lies Team"
 __description__ = "Separating truth from AI fiction - A powerful library for detecting LLM hallucinations"

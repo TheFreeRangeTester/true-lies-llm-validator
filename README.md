@@ -1,386 +1,300 @@
-# True Lies - Separating truth from AI fiction
+# True Lies Validator 🎭
 
-A Python library for validating LLM (Large Language Model) responses against reference data, with factual, semantic, and polarity validation.
+**La librería más fácil para validar respuestas de LLMs y chatbots**
 
-## 🚀 Key Features
+Valida si tu LLM o chatbot está diciendo la verdad, recordando el contexto y manteniendo la coherencia. Perfecto para testing automatizado de conversaciones.
 
-- **Factual Validation**: Extracts and validates specific fields from LLM responses
-- **Semantic Validation**: Compares semantic similarity with reference text
-- **Polarity Validation**: Verifies consistent tone/attitude
-- **Generic Extractors**: Reusable extractors for common cases (currency, date, categorical, etc.)
-- **Semantic Mapping**: Support for synonyms and domain-specific terms
-- **Flexible Configuration**: Customizable fields and extraction patterns
-- **Multiple Domains**: Insurance, motorcycles, retail, banking and more
-- **Domain Agnostic**: Works with any type of content
-
-## 📦 Installation
+## 🚀 Instalación Rápida
 
 ```bash
+# Instalar la librería
 pip install true-lies-validator
+
+# Verificar instalación
+python -c "from true_lies import ConversationValidator; print('✅ Instalado correctamente')"
 ```
 
-## 🎯 Quick Start
+## ⚡ Empezar en 2 Minutos
 
-### "Facts" Concept
+### 1. Validación Básica (1 minuto)
 
-**Facts** are the values that **MUST** be present in the LLM response. These are automatically expanded using **semantic mapping** to include synonyms and variations.
+```python
+from true_lies import ConversationValidator
 
-**Example:**
-- **Fact**: `"coverage_type": "auto insurance"`
-- **Semantic Mapping**: `"auto insurance": ["car insurance", "automobile insurance"]`
-- **Result**: The system will search for "auto insurance", "car insurance" or "automobile insurance" in the candidate
+# Crear validador
+conv = ConversationValidator()
 
-### Simplified API (Recommended)
+# Agregar conversación con reporting automático
+conv.add_turn_and_report(
+    user_input="Hola, soy Juan, mi email es juan@empresa.com",
+    bot_response="Hola Juan! Te ayudo con tu consulta.",
+    expected_facts={'name': 'Juan', 'email': 'juan@empresa.com'},
+    title="Turn 1: Usuario se identifica"
+)
+
+# Validar si el bot recuerda el contexto
+final_response = "Juan, tu consulta sobre juan@empresa.com está resuelta"
+retention = conv.validate_and_report(
+    response=final_response,
+    facts_to_check=['name', 'email'],
+    title="Test de Retención"
+)
+
+# Resultado automático: ✅ PASS o ❌ FAIL
+```
+
+### 2. Validación Multiturno Completa (2 minutos)
+
+```python
+from true_lies import ConversationValidator
+
+def test_chatbot_support():
+    """Test completo de chatbot de soporte"""
+    
+    # Crear validador
+    conv = ConversationValidator()
+    
+    # Turn 1: Usuario reporta problema
+    conv.add_turn_and_report(
+        user_input="Mi app no funciona, soy usuario ID 12345",
+        bot_response="Hola, voy a ayudarte. ¿Qué error ves?",
+        expected_facts={'user_id': '12345', 'issue_type': 'app_no_funciona'},
+        title="Turn 1: Usuario reporta problema"
+    )
+    
+    # Turn 2: Usuario da detalles
+    conv.add_turn_and_report(
+        user_input="Error 500 en login, email juan@empresa.com",
+        bot_response="Entiendo, error 500 en login. Revisando tu cuenta.",
+        expected_facts={'error_code': '500', 'email': 'juan@empresa.com'},
+        title="Turn 2: Usuario proporciona detalles"
+    )
+    
+    # Mostrar resumen de conversación
+    conv.print_conversation_summary("Resumen de Conversación")
+    
+    # Test final: ¿El bot recuerda todo?
+    final_response = "Juan (ID 12345), tu error 500 será solucionado en 2 horas"
+    retention = conv.validate_and_report(
+        response=final_response,
+        facts_to_check=['user_id', 'error_code', 'email'],
+        title="Test de Retención de Contexto"
+    )
+    
+    # Retornar resultado para tests automatizados
+    return retention['retention_score'] >= 0.8
+
+# Ejecutar test
+if __name__ == "__main__":
+    test_chatbot_support()
+```
+
+## 🎯 Casos de Uso Populares
+
+### E-commerce
+```python
+# Cliente comprando producto
+conv.add_turn_and_report(
+    user_input="Hola, soy María, quiero comprar una laptop por $1500",
+    bot_response="Hola María! Te ayudo con la laptop. Email registrado: maria@tienda.com",
+    expected_facts={'customer_name': 'María', 'product': 'laptop', 'budget': '1500'},
+    title="Turn 1: Cliente se identifica"
+)
+```
+
+### Banking
+```python
+# Cliente solicitando préstamo
+conv.add_turn_and_report(
+    user_input="Soy Carlos, trabajo en TechCorp, gano $95,000, quiero un préstamo",
+    bot_response="Hola Carlos! Te ayudo con tu préstamo. Email: carlos@banco.com",
+    expected_facts={'customer_name': 'Carlos', 'employer': 'TechCorp', 'income': '95000'},
+    title="Turn 1: Cliente solicita préstamo"
+)
+```
+
+### Soporte Técnico
+```python
+# Usuario reporta problema
+conv.add_turn_and_report(
+    user_input="Mi app no funciona, soy usuario ID 12345",
+    bot_response="Hola, voy a ayudarte. ¿Qué error ves?",
+    expected_facts={'user_id': '12345', 'issue_type': 'app_no_funciona'},
+    title="Turn 1: Usuario reporta problema"
+)
+```
+
+## 🔧 Métodos Principales
+
+### `add_turn_and_report()` - Agregar turno con reporting automático
+```python
+conv.add_turn_and_report(
+    user_input="...",
+    bot_response="...",
+    expected_facts={'key': 'value'},
+    title="Descripción del turno"
+)
+```
+
+### `validate_and_report()` - Validar retención con reporting automático
+```python
+retention = conv.validate_and_report(
+    response="Respuesta del bot a validar",
+    facts_to_check=['fact1', 'fact2'],
+    title="Test de Retención"
+)
+```
+
+### `print_conversation_summary()` - Resumen de conversación
+```python
+conv.print_conversation_summary("Resumen de Conversación")
+```
+
+## 📊 Tipos de Facts Soportados
+
+La librería detecta automáticamente estos tipos de información:
+
+- **Nombres**: "Juan", "María González"
+- **Emails**: "juan@empresa.com", "maria@tienda.com"
+- **Teléfonos**: "+1-555-123-4567", "(555) 123-4567"
+- **IDs**: "12345", "USER-001", "POL-2024-001"
+- **Montos**: "$1,500", "1500", "USD 1500"
+- **Empleadores**: "TechCorp", "Google Inc", "Microsoft"
+- **Fechas**: "2024-12-31", "31/12/2024", "December 31, 2024"
+- **Porcentajes**: "15%", "15 percent", "fifteen percent"
+
+## 🎨 Reporting Automático
+
+True Lies se encarga de todo el reporting. Solo necesitas 3 líneas:
+
+```python
+# Antes (30+ líneas de código manual)
+print(f"📊 Resultados detallados:")
+for fact in facts:
+    retained = retention.get(f'{fact}_retained', False)
+    # ... 25 líneas más de prints manuales
+
+# Después (3 líneas simples)
+retention = conv.validate_and_report(
+    response=final_response,
+    facts_to_check=['fact1', 'fact2'],
+    title="Test de Retención"
+)
+```
+
+## 📈 Métricas Automáticas
+
+- **Retention Score**: 0.0 - 1.0 (qué tan bien recuerda)
+- **Facts Retained**: X/Y facts recordados
+- **Evaluación**: A, B, C, D, F (calificación automática)
+- **Detalles por Fact**: Qué se encontró y qué no
+
+## 🚀 Ejemplos Completos
+
+### Ejemplo 1: Chatbot de Soporte
+```python
+from true_lies import ConversationValidator
+
+def test_support_chatbot():
+    conv = ConversationValidator()
+    
+    # Turn 1: Usuario reporta problema
+    conv.add_turn_and_report(
+        user_input="Mi app no funciona, soy usuario ID 12345",
+        bot_response="Hola, voy a ayudarte. ¿Qué error ves?",
+        expected_facts={'user_id': '12345', 'issue_type': 'app_no_funciona'},
+        title="Turn 1: Usuario reporta problema"
+    )
+    
+    # Turn 2: Usuario da detalles
+    conv.add_turn_and_report(
+        user_input="Error 500 en login, email juan@empresa.com",
+        bot_response="Entiendo, error 500 en login. Revisando tu cuenta.",
+        expected_facts={'error_code': '500', 'email': 'juan@empresa.com'},
+        title="Turn 2: Usuario proporciona detalles"
+    )
+    
+    # Test final
+    final_response = "Juan (ID 12345), tu error 500 será solucionado en 2 horas"
+    retention = conv.validate_and_report(
+        response=final_response,
+        facts_to_check=['user_id', 'error_code', 'email'],
+        title="Test de Retención de Contexto"
+    )
+    
+    return retention['retention_score'] >= 0.8
+
+if __name__ == "__main__":
+    test_support_chatbot()
+```
+
+### Ejemplo 2: E-commerce
+```python
+from true_lies import ConversationValidator
+
+def test_ecommerce_chatbot():
+    conv = ConversationValidator()
+    
+    # Turn 1: Cliente se identifica
+    conv.add_turn_and_report(
+        user_input="Hola, soy María González, email maria@tienda.com, quiero comprar una laptop",
+        bot_response="Hola María! Te ayudo con la laptop. Email registrado: maria@tienda.com",
+        expected_facts={'customer_name': 'María González', 'email': 'maria@tienda.com', 'product_interest': 'laptop'},
+        title="Turn 1: Cliente se identifica"
+    )
+    
+    # Turn 2: Cliente especifica presupuesto
+    conv.add_turn_and_report(
+        user_input="Mi presupuesto es $1500, necesito para programar",
+        bot_response="Perfecto María, tenemos laptops para programar en ese rango. Te envío opciones a maria@tienda.com",
+        expected_facts={'budget': '1500', 'use_case': 'programar'},
+        title="Turn 2: Cliente especifica presupuesto"
+    )
+    
+    # Test final
+    final_response = "María, tu laptop de programación por $1500 está lista. Te envío la factura a maria@tienda.com"
+    retention = conv.validate_and_report(
+        response=final_response,
+        facts_to_check=['customer_name', 'email', 'budget', 'use_case'],
+        title="Test de Retención E-commerce"
+    )
+    
+    return retention['retention_score'] >= 0.8
+
+if __name__ == "__main__":
+    test_ecommerce_chatbot()
+```
+
+## 🔍 Validación Avanzada (Opcional)
+
+Para casos más complejos, también puedes usar la validación tradicional:
 
 ```python
 from true_lies import create_scenario, validate_llm_candidates
 
-# 1. FACTS - Values that MUST be in the candidate (with extractors)
-facts = {
-    'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
-    'premium': {'extractor': 'money', 'expected': '850.00'},
-    'coverage_type': {'extractor': 'categorical', 'expected': 'auto insurance'},
-    'liability_limit': {'extractor': 'money', 'expected': '100000'},
-    'expiry_date': {'extractor': 'date', 'expected': 'December 31, 2024'}
-}
-
-# 2. REFERENCE TEXT - Reference text for semantic comparison
-reference_text = "Your auto insurance policy #POL-2024-001 has a premium of $850.00 per month..."
-
-# 3. SEMANTIC MAPPING - Synonyms that expand facts for validation
-semantic_mapping = {
-    "auto insurance": ["car insurance", "automobile insurance"],
-    "liability": ["liability coverage", "liability protection"],
-    "premium": ["monthly payment", "monthly cost"]
-}
-
-# 4. Create scenario
-scenario = create_scenario(
-    facts=facts,
-    semantic_reference=reference_text,
-    semantic_mappings=semantic_mapping
-)
-
-# 5. CANDIDATES - LLM responses to validate
-candidates = [
-    "Policy POL-2024-001 covers your automobile with monthly payments of $850.00...",
-    "Your car insurance policy POL-2024-001 costs $850 monthly...",
-    "Auto policy #POL-2024-001 has a $850.00 monthly premium..."
-]
-
-# 6. VALIDATE
-results = validate_llm_candidates(
-    scenario=scenario,
-    candidates=candidates,
-    threshold=0.7
-)
-```
-
-## 🎯 Generic Extractors (New!)
-
-The library includes reusable generic extractors that simplify configuration for common cases:
-
-### Available Extractors
-
-```python
-from true_lies.utils import create_field_config_with_extractor
-
-# Available generic extractors (truly domain agnostic):
-extractors = {
-    'money': 'Extracts currency values ($1,234.56, USD 27, 100 dollars)',
-    'number': 'Extracts general numbers (integers or decimals)',
-    'date': 'Extracts dates (DD/MM/YYYY, December 31, 2024)',
-    'hours': 'Extracts hour values (3 hours, 12 hours)',
-    'email': 'Extracts email addresses',
-    'phone': 'Extracts phone numbers',
-    'categorical': 'Extracts categorical values based on synonyms and patterns',
-    'regex': 'Extracts using custom regex patterns for complex cases'
-}
-
-### When to Use Each Extractor
-
-**🎯 Simple Cases (Use these first):**
-- **`money`**: Currency values ($1,234.56, USD 27, 100 dollars)
-- **`number`**: General numbers (25, 3.14, 1000)
-- **`date`**: Dates (December 31, 2024, 31/12/2024)
-- **`hours`**: Time values (3 hours, 12 hours)
-- **`email`**: Email addresses
-- **`phone`**: Phone numbers
-
-**🔧 Complex Cases (When simple extractors aren't enough):**
-- **`categorical`**: Values with synonyms or variations
-  ```python
-  'product': {'extractor': 'categorical', 'expected': 'iPhone 15 Pro', 
-              'patterns': {'iPhone 15 Pro': ['iPhone 15 Pro', 'iPhone15Pro', 'iPhone 15Pro']}}
-  ```
-- **`regex`**: Custom patterns for complex extraction
-  ```python
-  'policy_id': {'extractor': 'regex', 'expected': 'POL-2024-001', 
-                'patterns': r'POL-\d{4}-\d{3}'}
-  ```
-
-**💡 Pro Tip**: Start with simple extractors (`money`, `number`, `date`) and only use `categorical` or `regex` when you need more control.
-```
-
-### Usage Examples
-
-#### Method 1: Generic Extractors (Simplest)
-
-```python
-# Use generic extractors for simple cases
-field_configs = {
-    "price": create_field_config_with_extractor(
-        "price",
-        "money",
-        expected_value="$999.99"
-    ),
-    "stock": create_field_config_with_extractor(
-        "stock",
-        "number",
-        expected_value="25"
-    ),
-    "product": create_field_config_with_extractor(
-        "product",
-        "categorical",
-        expected_value="iPhone 15 Pro"
-    )
-}
-
-results = validate_llm_candidates(
-    scenario=scenario,
-    candidates=candidates,
-    threshold=0.7
-)
-```
-
-#### Method 2: Specific Patterns (Advanced)
-
-```python
-# Use specific patterns for complex cases
-field_configs = {
-    "product_name": create_field_config(
-        "product_name",
-        patterns=[
-            r'(iPhone\s+\d+(?:\s+Pro)?(?:\s+Max)?)',
-            r'(Samsung\s+Galaxy\s+\w+)',
-            r'(MacBook\s+(?:Pro|Air)\s+\w+)'
-        ]
-    )
-}
-
-results = validate_llm_candidates(
-    scenario=scenario,
-    candidates=candidates,
-    threshold=0.7
-)
-```
-
-#### Method 3: Hybrid (Best of Both Worlds)
-
-```python
-# Combine generic extractors with specific patterns
-field_configs = {
-    # Use generic extractor for simple cases
-    "price": create_field_config_with_extractor(
-        "price",
-        "money",
-        expected_value="$999.99"
-    ),
-    # Use specific patterns for complex cases
-    "product_name": create_field_config(
-        "product_name",
-        patterns=[
-            r'(iPhone\s+\d+(?:\s+Pro)?(?:\s+Max)?)',
-            r'(Samsung\s+Galaxy\s+\w+)',
-            r'(MacBook\s+(?:Pro|Air)\s+\w+)'
-        ]
-    )
-}
-```
-
-## 📊 Results
-
-The function returns a dictionary with detailed information:
-
-```python
-{
-    "total_candidates": 3,
-    "factual_pass": 1,
-    "fully_valid": 1,
-    "success_rate": 33.3,
-    "results": [
-        {
-            "index": 1,
-            "candidate": "...",
-            "factual": {"is_valid": True, "details": {...}},
-            "semantic": {
-                "similarity_score": 0.85,
-                "token_score": 0.90,
-                "seq_score": 0.80,
-                "semantic_boost": 0.05,
-                "is_valid": True
-            },
-            "polarity": {"polarity_match": True, ...},
-            "is_valid": True
-        }
-    ],
-    "facts": {...},  # Original facts that were validated
-    "reference_text": "..."
-}
-```
-
-## 🏗️ Supported Domains
-
-### Insurance (`insurance`)
-- `policy_number`: Policy numbers
-- `premium`: Monthly premiums
-- `coverage_type`: Coverage types
-- `liability_limit`: Liability limits
-- `expiry_date`: Expiration dates
-
-### Motorcycles (`motorcycle_dealership`)
-- `motorcycle_model`: Motorcycle models
-- `price`: Prices
-- `mileage`: Mileage
-- `warranty`: Warranties
-- `condition`: Condition
-
-### Retail (`retail`)
-- `product_name`: Product names
-- `price`: Prices
-- `stock`: Stock levels
-- `brand`: Brands
-- `category`: Categories
-
-### Banking (`banking`)
-- `account_number`: Account numbers
-- `balance`: Account balances
-- `transaction_amount`: Transaction amounts
-- `account_type`: Account types
-
-### Energy (`energy`)
-- `meter_number`: Meter numbers
-- `consumption`: Consumption values
-- `billing_period`: Billing periods
-- `rate_type`: Rate types
-
-## 🔍 Enhanced Semantic Validation
-
-Semantic validation includes:
-
-- **Token Overlap**: Normalized token comparison
-- **Sequence Similarity**: Sequence similarity using difflib
-- **Semantic Boost**: Bonus for synonym matches
-- **Weighted Scoring**: Higher weight for key fact tokens
-
-### Semantic Scoring
-
-```python
-# Token weights:
-# - Fact tokens: weight 3.0
-# - Semantic synonyms: weight 2.0  
-# - Other tokens: weight 1.0
-
-# Final score = (token_score + seq_score) / 2 + semantic_boost
-```
-
-## 🔧 Individual API
-
-### validate_llm_candidates()
-
-To validate a single candidate with all validation types:
-
-```python
-from true_lies import create_scenario, validate_llm_candidates
-
-# Facts that MUST be in the candidate (with extractors)
+# Facts que DEBEN estar en la respuesta
 facts = {
     'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
     'premium': {'extractor': 'money', 'expected': '850.00'},
     'coverage_type': {'extractor': 'categorical', 'expected': 'auto insurance'}
 }
 
+# Texto de referencia para comparación semántica
 reference_text = "Your auto insurance policy #POL-2024-001 has a premium of $850.00"
 
-candidate = "Policy POL-2024-001 covers your automobile with monthly payments of $850.00"
-
-# Semantic mapping to expand facts
-semantic_mapping = {
-    "auto insurance": ["car insurance", "automobile insurance"],
-    "premium": ["monthly payment", "monthly cost"]
-}
-
-# Create scenario
+# Crear escenario
 scenario = create_scenario(
     facts=facts,
     semantic_reference=reference_text,
-    semantic_mappings=semantic_mapping
+    semantic_mappings={}
 )
 
-# Validate
-results = validate_llm_candidates(
-    scenario=scenario,
-    candidates=[candidate],
-    threshold=0.7
-)
-```
-
-## 🔄 Migration Guide
-
-### Migrating from Specific Patterns to Generic Extractors
-
-#### Before (v0.2.0):
-```python
-from true_lies.utils import create_field_config
-
-field_configs = {
-    "price": create_field_config(
-        "price",
-        patterns=[r'\$(\d+(?:,\d{3})*(?:\.\d{2})?)']
-    )
-}
-```
-
-#### After (v0.4.0+):
-```python
-from true_lies.utils import create_field_config_with_extractor
-
-field_configs = {
-    "price": create_field_config_with_extractor(
-        "price",
-        "money",
-        expected_value="$999.99"
-    )
-}
-```
-
-## 📝 Examples
-
-### Example 1: Insurance Policy Validation
-
-```python
-# Configuration for insurance policies
-facts = {
-    'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
-    'premium': {'extractor': 'money', 'expected': '850'},
-    'coverage': {'extractor': 'categorical', 'expected': 'auto'}
-}
-
-reference_text = "Your auto insurance policy POL-2024-001 has a premium of $850..."
-
+# Validar respuestas
 candidates = [
-    "Policy POL-2024-001 covers your automobile with monthly payments of $850.00...",
-    "Your car insurance policy POL-2024-001 costs $850 monthly...",
-    "Auto policy #POL-2024-001 has a $850.00 monthly premium..."
+    "Policy POL-2024-001 covers your automobile with monthly payments of $850.00",
+    "Your car insurance policy POL-2024-001 costs $850 monthly"
 ]
 
-# Create scenario
-scenario = create_scenario(
-    facts=facts,
-    semantic_reference=reference_text,
-    semantic_mappings={}
-)
-
 results = validate_llm_candidates(
     scenario=scenario,
     candidates=candidates,
@@ -388,74 +302,44 @@ results = validate_llm_candidates(
 )
 ```
 
-### Example 2: Retail Inventory Validation
+## 🎯 Extractores Disponibles
 
-```python
-# Configuration for retail products
-facts = {
-    'product_name': {'extractor': 'categorical', 'expected': 'iPhone 15 Pro'},
-    'stock': {'extractor': 'number', 'expected': '25'},
-    'price': {'extractor': 'money', 'expected': '999.99'},
-    'color': {'extractor': 'categorical', 'expected': 'Space Black'}
-}
+- **`money`**: Valores monetarios ($1,234.56, USD 27, 100 dollars)
+- **`number`**: Números generales (25, 3.14, 1000)
+- **`date`**: Fechas (December 31, 2024, 31/12/2024)
+- **`email`**: Direcciones de email
+- **`phone`**: Números de teléfono
+- **`categorical`**: Valores categóricos con sinónimos
+- **`regex`**: Patrones personalizados
 
-reference_text = "The iPhone 15 Pro is currently in stock with 25 units available..."
+## 📚 Documentación Completa
 
-# Create scenario
-scenario = create_scenario(
-    facts=facts,
-    semantic_reference=reference_text,
-    semantic_mappings={}
-)
+- **[Guía de Validación Multiturno](MULTITURN_VALIDATION_README.md)** - Detalles completos
+- **[Guía de Integración](INTEGRATION_GUIDE.md)** - Cómo integrar en tu proyecto
+- **[Guía de Extracción de Emails](EMAIL_EXTRACTION_GUIDE.md)** - Extracción avanzada
+- **[Comparación Antes/Después](COMPARISON_BEFORE_AFTER.md)** - Mejoras de la librería
 
-results = validate_llm_candidates(
-    scenario=scenario,
-    candidates=candidates,
-    threshold=0.7
-)
-```
+## 🤝 Contribuir
 
-### Example: Inventory Validation
+¡Las contribuciones son bienvenidas! Por favor:
 
-```python
-# Configuration for motorcycles
-facts = {
-    'motorcycle_model': {'extractor': 'categorical', 'expected': 'Honda CBR 600RR'},
-    'price': {'extractor': 'money', 'expected': '12500'},
-    'mileage': {'extractor': 'number', 'expected': '1500'},
-    'warranty': {'extractor': 'categorical', 'expected': '6-month'},
-    'condition': {'extractor': 'categorical', 'expected': 'excellent'}
-}
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
 
-reference_text = "The Honda CBR 600RR is available for $12,500..."
+## 📄 Licencia
 
-# Create scenario
-scenario = create_scenario(
-    facts=facts,
-    semantic_reference=reference_text,
-    semantic_mappings={}
-)
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
 
-results = validate_llm_candidates(
-    scenario=scenario,
-    candidates=candidates,
-    threshold=0.7
-)
-```
+## 🙏 Agradecimientos
 
-## 🤝 Contributing
-
-We welcome contributions! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- NLTK for natural language processing capabilities
-- The open source community for inspiration and feedback
+- NLTK por las capacidades de procesamiento de lenguaje natural
+- La comunidad open source por la inspiración y feedback
 
 ---
 
-**True Lies - Where AI meets reality** 🎭
+**True Lies - Donde la IA se encuentra con la realidad** 🎭
+
+*¿Tienes preguntas? Abre un issue o contacta al equipo de desarrollo.*

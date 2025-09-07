@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="true-lies-validator",
-    version="0.5.2",
+    version="0.6.0",
     packages=find_packages(),
     install_requires=["nltk"],
     description="True Lies - Separating truth from AI fiction. A powerful library for detecting LLM hallucinations and validating AI responses against factual data.",
