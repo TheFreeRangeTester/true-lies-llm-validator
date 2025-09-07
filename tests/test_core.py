@@ -1,4 +1,4 @@
-from llm_validator import core
+from true_lies import validation_core as core
 
 # --------------------------
 # Original tests
