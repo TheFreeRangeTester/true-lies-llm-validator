@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "true-lies-validator"
-version = "0.5.2"
+version = "0.6.4"
 description = "True Lies - Separating truth from AI fiction. A powerful library for detecting LLM hallucinations and validating AI responses against factual data."
 readme = "README.md"
 requires-python = ">=3.10"

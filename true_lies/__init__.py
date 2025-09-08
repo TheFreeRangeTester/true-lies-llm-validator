@@ -40,9 +40,9 @@ Uso básico:
         similarity_threshold=0.7
     )
     
-    print(f"Válido: {result['is_valid']}")
-    print(f"Precisión factual: {result['factual_accuracy']}")
-    print(f"Similitud: {result['similarity_score']:.3f}")
+    print(f"Valid: {result['is_valid']}")
+    print(f"Factual accuracy: {result['factual_accuracy']}")
+    print(f"Similarity: {result['similarity_score']:.3f}")
 """
 
 # Importar funciones principales para la API pública

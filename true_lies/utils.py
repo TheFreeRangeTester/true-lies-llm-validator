@@ -52,32 +52,43 @@ def extract_money(text, format='usd'):
     if not isinstance(text, str):
         return None
     
-    # Patrón regex unificado que funciona con todos los casos
-    # Basado en el patrón que ya probaste que funciona
-    pattern = r'(?i)(?:usd\s+)?(\d+(?:,\d{3})*(?:\.\d{2})?)(?=\s*(?:dolares?|dólares?|dollar|dollars|usd|\$)?)'
+    # Patrones prioritarios para montos claramente asociados con moneda
+    # 1. Números con símbolo $ (más específico)
+    dollar_pattern = r'\$(\d+(?:,\d{3})*(?:\.\d{2})?)'
+    # 2. USD seguido de número
+    usd_pattern = r'(?i)usd\s+(\d+(?:,\d{3})*(?:\.\d{2})?)'
+    # 3. Número seguido de palabras de moneda
+    currency_words_pattern = r'(\d+(?:,\d{3})*(?:\.\d{2})?)\s+(?:dolares?|dólares?|dollar|dollars)'
     
-    match = re.search(pattern, text)
-    if match:
-        amount = match.group(1)
-        
-        if format == 'usd':
-            return f"USD {amount}"
-        elif format == 'symbol':
-            return f"${amount}"
-        elif format == 'number':
-            return amount
-        elif format == 'original':
-            # Intentar detectar el formato original
-            if re.search(r'usd\s+', text, re.IGNORECASE):
+    # Buscar en orden de prioridad
+    patterns = [
+        (dollar_pattern, 'symbol'),
+        (usd_pattern, 'usd'),
+        (currency_words_pattern, 'words')
+    ]
+    
+    for pattern, pattern_type in patterns:
+        match = re.search(pattern, text)
+        if match:
+            amount = match.group(1)
+            
+            if format == 'usd':
                 return f"USD {amount}"
-            elif re.search(r'\$', text):
+            elif format == 'symbol':
                 return f"${amount}"
-            elif re.search(r'(?:dolares?|dólares?|dollar|dollars)', text, re.IGNORECASE):
-                return f"{amount} dólares"
+            elif format == 'number':
+                return amount
+            elif format == 'original':
+                # Devolver en el formato original encontrado
+                if pattern_type == 'symbol':
+                    return f"${amount}"
+                elif pattern_type == 'usd':
+                    return f"USD {amount}"
+                elif pattern_type == 'words':
+                    return f"{amount} dólares"
             else:
                 return f"USD {amount}"  # Default
-        else:
-            return f"USD {amount}"  # Default
+    
     return None
 
 # Funciones de compatibilidad (deprecated - usar extract_money)
@@ -567,21 +578,53 @@ def apply_semantic_mappings(text, mappings):
     
     return text_lower
 
-def calculate_semantic_similarity(text1, text2):
+def calculate_semantic_similarity(text1, text2, fact_weights=None):
     """
-    Calcula la similitud semántica entre dos textos
+    Calcula la similitud semántica entre dos textos usando un algoritmo mejorado.
     
     Args:
         text1: Primer texto
         text2: Segundo texto
+        fact_weights: Diccionario con pesos para tokens importantes (opcional)
     
     Returns:
         float: Score de similitud entre 0 y 1
     """
+    import re
+    from difflib import SequenceMatcher
+    
     if not isinstance(text1, str) or not isinstance(text2, str):
         return 0.0
     
-    return SequenceMatcher(None, text1.lower(), text2.lower()).ratio()
+    # Normalizar textos (remover puntuación, convertir a minúsculas)
+    text1_norm = re.sub(r'[^\w\s]', ' ', text1.lower())
+    text2_norm = re.sub(r'[^\w\s]', ' ', text2.lower())
+    
+    # Dividir en tokens
+    tokens1 = set(text1_norm.split())
+    tokens2 = set(text2_norm.split())
+    
+    # Calcular overlap de tokens
+    common_tokens = tokens1.intersection(tokens2)
+    total_tokens = tokens1.union(tokens2)
+    
+    # Score base de overlap de tokens
+    token_score = len(common_tokens) / len(total_tokens) if total_tokens else 0
+    
+    # Score de secuencia (menos peso)
+    sequence_score = SequenceMatcher(None, text1_norm, text2_norm).ratio()
+    
+    # Aplicar pesos a tokens importantes si se proporcionan
+    weighted_score = token_score
+    if fact_weights:
+        for token, weight in fact_weights.items():
+            if token in common_tokens:
+                weighted_score += weight * 0.1  # Bonus por tokens importantes
+    
+    # Combinar scores (70% tokens ponderados, 30% secuencia)
+    final_score = (weighted_score * 0.7) + (sequence_score * 0.3)
+    
+    return min(final_score, 1.0)  # Cap at 1.0
 
 def load_semantic_mapping(domain, path=None):
     """
@@ -647,49 +690,5 @@ def normalize_text_advanced(text):
     
     return text
 
-def validate_against_reference_dynamic(candidate_text, reference_scenario, similarity_threshold=0.8):
-    """
-    Validación dinámica basada en hechos configurados, semántica y polaridad
-    
-    Args:
-        candidate_text: Texto candidato a validar
-        reference_scenario: Escenario de referencia con hechos y mapeos
-        similarity_threshold: Umbral de similitud (default: 0.8)
-    
-    Returns:
-        dict: Resultados de la validación
-    """
-    facts = reference_scenario.get('facts', {})
-    fact_results = {}
-    
-    # Validar cada hecho configurado
-    for fact_name, fact_config in facts.items():
-        extracted = extract_fact(candidate_text, fact_config)
-        expected = fact_config.get('expected')
-        
-        # Calcular precisión
-        if isinstance(extracted, list):
-            accuracy = expected in extracted
-        else:
-            accuracy = extracted == expected
-        
-        fact_results[f'{fact_name}_accuracy'] = accuracy
-        fact_results[f'extracted_{fact_name}'] = extracted
-    
-    # Precisión factual general
-    factual_accuracy = all(fact_results.get(f'{name}_accuracy', False) for name in facts.keys())
-    
-    # Similitud semántica con mapeos
-    reference_text = reference_scenario.get('semantic_reference', '').lower()
-    candidate_mapped = apply_semantic_mappings(
-        candidate_text, 
-        reference_scenario.get('semantic_mappings', {})
-    )
-    similarity_score = calculate_semantic_similarity(reference_text, candidate_mapped)
-    
-    return {
-        'factual_accuracy': factual_accuracy,
-        'similarity_score': similarity_score,
-        'is_valid': factual_accuracy and similarity_score >= similarity_threshold,
-        'fact_results': fact_results
-    }
+# Función validate_against_reference_dynamic movida a validation_core.py
+# para evitar duplicación y mantener consistencia en la API

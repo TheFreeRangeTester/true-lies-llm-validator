@@ -42,13 +42,28 @@ def validate_against_reference_dynamic(candidate_text, reference_scenario, simil
     # Precisión factual general
     factual_accuracy = all(fact_results.get(f'{name}_accuracy', False) for name in facts.keys())
     
-    # Similitud semántica con mapeos
+    # Similitud semántica con mapeos y pesos de hechos
     reference_text = reference_scenario['semantic_reference'].lower()
     candidate_mapped = apply_semantic_mappings(
         candidate_text, 
         reference_scenario.get('semantic_mappings', {})
     )
-    similarity_score = calculate_semantic_similarity(reference_text, candidate_mapped)
+    
+    # Crear pesos de hechos basados en los valores extraídos
+    fact_weights = {}
+    for fact_name, fact_config in facts.items():
+        expected_value = fact_config.get('expected', '')
+        if expected_value:
+            # Agregar el valor esperado con peso alto
+            fact_weights[expected_value.lower()] = 2.0
+            # Agregar variaciones del valor esperado
+            if isinstance(expected_value, str):
+                # Dividir en palabras para valores compuestos
+                for word in expected_value.lower().split():
+                    if len(word) > 2:  # Solo palabras significativas
+                        fact_weights[word] = 1.5
+    
+    similarity_score = calculate_semantic_similarity(reference_text, candidate_mapped, fact_weights)
     
     # Validación de polaridad con lógica personalizada
     reference_polarity = detect_polarity(reference_scenario['semantic_reference'])

@@ -25,12 +25,18 @@ POLARITY_PATTERNS = {
         'denied', 'rejected', 'failed', 'cancelled', 'declined', 'inactive', 
         'unavailable', 'bad', 'poor', 'low', 'no', 'error', 'invalid', 'broken',
         'lost', 'missing', 'wrong', 'incorrect', 'blocked', 'stopped', 'ended',
+        'not', 'does not', 'do not', 'will not', 'cannot', 'can not', 'should not',
+        'would not', 'could not', 'did not', 'doesn\'t', 'don\'t', 'won\'t', 'can\'t',
+        'shouldn\'t', 'wouldn\'t', 'couldn\'t', 'didn\'t', 'isn\'t', 'aren\'t',
+        'wasn\'t', 'weren\'t', 'hasn\'t', 'haven\'t', 'hadn\'t',
         # Español
         'rechazado', 'rechazada', 'fallido', 'fallida', 'cancelado', 'cancelada',
         'negado', 'negada', 'inactivo', 'inactiva', 'no disponible', 'malo', 'mala',
         'bajo', 'baja', 'no', 'error', 'inválido', 'inválida', 'roto', 'rota',
         'perdido', 'perdida', 'faltante', 'incorrecto', 'incorrecta', 'bloqueado',
-        'bloqueada', 'detenido', 'detenida', 'terminado', 'terminada', 'falló', 'fallo'
+        'bloqueada', 'detenido', 'detenida', 'terminado', 'terminada', 'falló', 'fallo',
+        'no es', 'no está', 'no tiene', 'no puede', 'no debe', 'no debería',
+        'no funciona', 'no trabaja', 'no sirve', 'no vale', 'no es válido'
     ],
     'neutral': [
         # Inglés

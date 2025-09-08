@@ -14,6 +14,8 @@ pip install true-lies-validator
 python -c "from true_lies import ConversationValidator; print('✅ Instalado correctamente')"
 ```
 
+> **📦 Versión actual: 0.6.4** - Con detección de polaridad mejorada y pesos automáticos de hechos
+
 ## ⚡ Empezar en 2 Minutos
 
 ### 1. Validación Básica (1 minuto)
@@ -282,11 +284,11 @@ facts = {
 # Texto de referencia para comparación semántica
 reference_text = "Your auto insurance policy #POL-2024-001 has a premium of $850.00"
 
-# Crear escenario
+# Crear escenario (con pesos automáticos de hechos)
 scenario = create_scenario(
     facts=facts,
     semantic_reference=reference_text,
-    semantic_mappings={}
+    semantic_mappings={}  # Los pesos se aplican automáticamente
 )
 
 # Validar respuestas
@@ -302,15 +304,78 @@ results = validate_llm_candidates(
 )
 ```
 
+### 🎯 Características Avanzadas
+
+**Pesos Automáticos de Hechos:**
+- Los valores `expected` en tus hechos se ponderan automáticamente
+- Mejora significativa en scores de similitud (+55% en casos típicos)
+- No necesitas configuración adicional
+
+**Detección de Polaridad Mejorada:**
+- Detecta correctamente frases negativas con "not", "does not", "don't", etc.
+- Patrones en inglés y español
+- Evita falsos positivos con subcadenas
+
+**Semantic Mappings Optimizados:**
+- Usa mappings simples y específicos
+- Evita sobre-mapeo que puede empeorar los scores
+- Recomendación: mappings mínimos o sin mappings
+
+### 💡 Mejores Prácticas
+
+**1. Configuración de Hechos:**
+```python
+# ✅ CORRECTO - Para números específicos
+'account_number': {'extractor': 'number', 'expected': '2992'}
+
+# ❌ INCORRECTO - Para números específicos
+'account_number': {'extractor': 'categorical', 'expected': '2992'}
+
+# ✅ CORRECTO - Para categorías
+'account_type': {'extractor': 'categorical', 'expected': 'savings'}
+```
+
+**2. Semantic Mappings:**
+```python
+# ✅ CORRECTO - Mappings simples
+semantic_mappings = {
+    "account": ["cuenta"],
+    "balance": ["saldo", "monto"]
+}
+
+# ❌ INCORRECTO - Mappings excesivos
+semantic_mappings = {
+    "phrases": ["the balance of your", "your term deposit account", ...]  # Demasiado agresivo
+}
+```
+
+**3. Thresholds:**
+- **0.6-0.7**: Para validación estricta
+- **0.5-0.6**: Para validación permisiva
+- **0.8+**: Solo para casos exactos
+
 ## 🎯 Extractores Disponibles
 
-- **`money`**: Valores monetarios ($1,234.56, USD 27, 100 dollars)
+- **`money`**: Valores monetarios ($1,234.56, USD 27, 100 dollars) - **Mejorado v0.6.2+**
 - **`number`**: Números generales (25, 3.14, 1000)
-- **`date`**: Fechas (December 31, 2024, 31/12/2024)
+- **`categorical`**: Valores categóricos con sinónimos - **Mejorado v0.6.2+**
 - **`email`**: Direcciones de email
 - **`phone`**: Números de teléfono
-- **`categorical`**: Valores categóricos con sinónimos
+- **`hours`**: Horarios (9:00 AM, 14:30, 3:00 PM)
+- **`id`**: Identificadores (USER-001, POL-2024-001)
 - **`regex`**: Patrones personalizados
+
+### 🔧 Mejoras en Extractores (v0.6.2+)
+
+**Extractor `money` mejorado:**
+- Prioriza montos con símbolos de moneda ($, USD, dollars)
+- Evita capturar números no monetarios
+- Mejor precisión en escenarios bancarios
+
+**Extractor `categorical` mejorado:**
+- Coincidencias de palabras completas (evita falsos positivos)
+- Mejor detección de patrones específicos
+- Compatible con valores esperados exactos
 
 ## 📚 Documentación Completa
 
@@ -318,6 +383,47 @@ results = validate_llm_candidates(
 - **[Guía de Integración](INTEGRATION_GUIDE.md)** - Cómo integrar en tu proyecto
 - **[Guía de Extracción de Emails](EMAIL_EXTRACTION_GUIDE.md)** - Extracción avanzada
 - **[Comparación Antes/Después](COMPARISON_BEFORE_AFTER.md)** - Mejoras de la librería
+
+## 🛠️ Herramientas de Diagnóstico
+
+### Diagnostic Tool
+Para diagnosticar problemas de similitud y extracción:
+
+```python
+from diagnostic_tool import run_custom_diagnosis
+
+# Tu configuración
+fact_configs = {
+    'account_number': {'extractor': 'number', 'expected': '2992'},
+    'balance_amount': {'extractor': 'money', 'expected': '3,000.60'}
+}
+candidates = ["Your account 2992 has $3,000.60"]
+
+# Diagnosticar
+run_custom_diagnosis(
+    text="The balance of your Term Deposit account 2992 is $3,000.60",
+    fact_configs=fact_configs,
+    candidates=candidates
+)
+```
+
+## 🔄 Changelog
+
+### v0.6.4 (Actual)
+- ✅ Detección de polaridad mejorada (detecta "not", "does not", etc.)
+- ✅ Patrones negativos completos en inglés y español
+- ✅ Evita falsos positivos con subcadenas
+
+### v0.6.3
+- ✅ Función duplicada eliminada
+- ✅ API consistente
+- ✅ Código limpio
+
+### v0.6.2
+- ✅ Pesos automáticos de hechos
+- ✅ Similitud mejorada (+55% en casos típicos)
+- ✅ Extractor de dinero mejorado
+- ✅ Reporting en inglés
 
 ## 🤝 Contribuir
 

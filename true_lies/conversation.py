@@ -390,29 +390,29 @@ class ConversationValidator:
     def print_retention_report(self, retention_results: Dict[str, Any], facts_to_check: List[str], 
                              response: str = None, title: str = "Retention Report") -> None:
         """
-        Imprime un reporte detallado y elegante de los resultados de retención.
+        Prints a detailed and elegant report of retention results.
         
         Args:
-            retention_results: Resultados de validate_retention()
-            facts_to_check: Lista de facts verificados
-            response: Respuesta del bot (opcional)
-            title: Título del reporte
+            retention_results: Results from validate_retention()
+            facts_to_check: List of facts to verify
+            response: Bot response (optional)
+            title: Report title
         """
         print("=" * 80)
         print(f"📊 {title}")
         print("=" * 80)
         
         if response:
-            print(f"📝 Respuesta: '{response}'")
+            print(f"📝 Response: '{response}'")
             print()
         
-        print(f"📈 Métricas Generales:")
+        print(f"📈 General Metrics:")
         print(f"   Retention Score: {retention_results['retention_score']:.2f}")
         print(f"   Facts Retained: {retention_results['facts_retained']}/{retention_results['total_facts']}")
         print(f"   All Retained: {'✅' if retention_results['all_retained'] else '❌'}")
         print()
         
-        print(f"🔍 Detalles por Fact:")
+        print(f"🔍 Details by Fact:")
         for fact in facts_to_check:
             retained = retention_results.get(f'{fact}_retained', False)
             detected = retention_results.get(f'{fact}_detected', 'N/A')
@@ -421,39 +421,39 @@ class ConversationValidator:
             
             status = "✅" if retained else "❌"
             print(f"   {status} {fact}:")
-            print(f"      Esperado: '{expected}'")
-            print(f"      Detectado: '{detected}'")
+            print(f"      Expected: '{expected}'")
+            print(f"      Detected: '{detected}'")
             if not retained and reason:
-                print(f"      Razón: {reason}")
+                print(f"      Reason: {reason}")
             print()
         
-        # Evaluación general
+        # General evaluation
         score = retention_results['retention_score']
         if score >= 0.9:
             grade = "A"
-            comment = "Excelente retención de contexto"
+            comment = "Excellent context retention"
         elif score >= 0.8:
             grade = "B"
-            comment = "Buena retención de contexto"
+            comment = "Good context retention"
         elif score >= 0.7:
             grade = "C"
-            comment = "Retención aceptable"
+            comment = "Acceptable retention"
         elif score >= 0.5:
             grade = "D"
-            comment = "Retención deficiente"
+            comment = "Poor retention"
         else:
             grade = "F"
-            comment = "Retención muy deficiente"
+            comment = "Very poor retention"
         
-        print(f"🎯 Evaluación: {grade} - {comment}")
+        print(f"🎯 Evaluation: {grade} - {comment}")
         print("=" * 80)
     
     def print_conversation_summary(self, title: str = "Conversation Summary") -> None:
         """
-        Imprime un resumen elegante de la conversación actual.
+        Prints an elegant summary of the current conversation.
         
         Args:
-            title: Título del resumen
+            title: Summary title
         """
         summary = self.get_conversation_summary()
         
@@ -461,24 +461,24 @@ class ConversationValidator:
         print(f"💬 {title}")
         print("=" * 80)
         
-        print(f"📊 Estadísticas:")
-        print(f"   Total de turnos: {summary['total_turns']}")
-        print(f"   Total de facts: {summary['total_facts']}")
+        print(f"📊 Statistics:")
+        print(f"   Total turns: {summary['total_turns']}")
+        print(f"   Total facts: {summary['total_facts']}")
         print()
         
         if summary['facts']:
-            print(f"📋 Facts Acumulados:")
+            print(f"📋 Accumulated Facts:")
             for fact_name, fact_value in summary['facts'].items():
                 print(f"   {fact_name}: {fact_value}")
             print()
         
         if summary['turn_history']:
-            print(f"🔄 Historial de Turnos:")
+            print(f"🔄 Turn History:")
             for i, turn in enumerate(summary['turn_history'], 1):
                 print(f"   Turn {i}:")
                 print(f"      Usuario: {turn['user_input'][:50]}{'...' if len(turn['user_input']) > 50 else ''}")
                 print(f"      Bot: {turn['bot_response'][:50]}{'...' if len(turn['bot_response']) > 50 else ''}")
-                print(f"      Facts extraídos: {len(turn['extracted_facts'])}")
+                print(f"      Extracted facts: {len(turn['extracted_facts'])}")
             print()
         
         print("=" * 80)
@@ -486,15 +486,15 @@ class ConversationValidator:
     def validate_and_report(self, response: str, facts_to_check: List[str], 
                           title: str = "Validation Report") -> Dict[str, Any]:
         """
-        Valida retención e imprime reporte automáticamente.
+        Validates retention and prints report automatically.
         
         Args:
-            response: Respuesta del bot a validar
-            facts_to_check: Lista de facts a verificar
-            title: Título del reporte
-            
+            response: Bot response to validate
+            facts_to_check: List of facts to verify
+            title: Report title
+        
         Returns:
-            dict: Resultados de la validación
+            dict: Validation results
         """
         retention = self.validate_retention(response, facts_to_check)
         self.print_retention_report(retention, facts_to_check, response, title)
@@ -517,8 +517,8 @@ class ConversationValidator:
         print("=" * 80)
         print(f"➕ {title}")
         print("=" * 80)
-        print(f"👤 Usuario: {user_input}")
+        print(f"👤 User: {user_input}")
         print(f"🤖 Bot: {bot_response}")
-        print(f"📋 Facts esperados: {expected_facts}")
-        print(f"📊 Facts extraídos: {len(self.conversation_facts)} total")
+        print(f"📋 Expected facts: {expected_facts}")
+        print(f"📊 Extracted facts: {len(self.conversation_facts)} total")
         print("=" * 80)
