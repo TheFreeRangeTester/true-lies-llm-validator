@@ -1,227 +1,227 @@
 # True Lies Validator 🎭
 
-**La librería más fácil para validar respuestas de LLMs y chatbots**
+**The easiest library to validate LLM and chatbot responses**
 
-Valida si tu LLM o chatbot está diciendo la verdad, recordando el contexto y manteniendo la coherencia. Perfecto para testing automatizado de conversaciones.
+Validates if your LLM or chatbot is telling the truth, remembering context and maintaining coherence. Perfect for automated conversation testing.
 
-## 🚀 Instalación Rápida
+## 🚀 Quick Installation
 
 ```bash
-# Instalar la librería
+# Install the library
 pip install true-lies-validator
 
-# Verificar instalación
-python -c "from true_lies import ConversationValidator; print('✅ Instalado correctamente')"
+# Verify installation
+python -c "from true_lies import ConversationValidator; print('✅ Installed correctly')"
 ```
 
-> **📦 Versión actual: 0.6.4** - Con detección de polaridad mejorada y pesos automáticos de hechos
+> **📦 Current version: 0.6.4** - With improved polarity detection and automatic fact weighting
 
-## ⚡ Empezar en 2 Minutos
+## ⚡ Get Started in 2 Minutes
 
-### 1. Validación Básica (1 minuto)
+### 1. Basic Validation (1 minute)
 
 ```python
 from true_lies import ConversationValidator
 
-# Crear validador
+# Create validator
 conv = ConversationValidator()
 
-# Agregar conversación con reporting automático
+# Add conversation with automatic reporting
 conv.add_turn_and_report(
-    user_input="Hola, soy Juan, mi email es juan@empresa.com",
-    bot_response="Hola Juan! Te ayudo con tu consulta.",
-    expected_facts={'name': 'Juan', 'email': 'juan@empresa.com'},
-    title="Turn 1: Usuario se identifica"
+    user_input="Hello, I'm John, my email is john@company.com",
+    bot_response="Hello John! I'll help you with your inquiry.",
+    expected_facts={'name': 'John', 'email': 'john@company.com'},
+    title="Turn 1: User identifies themselves"
 )
 
-# Validar si el bot recuerda el contexto
-final_response = "Juan, tu consulta sobre juan@empresa.com está resuelta"
+# Validate if the bot remembers the context
+final_response = "John, your inquiry about john@company.com is resolved"
 retention = conv.validate_and_report(
     response=final_response,
     facts_to_check=['name', 'email'],
-    title="Test de Retención"
+    title="Retention Test"
 )
 
-# Resultado automático: ✅ PASS o ❌ FAIL
+# Automatic result: ✅ PASS or ❌ FAIL
 ```
 
-### 2. Validación Multiturno Completa (2 minutos)
+### 2. Complete Multi-turn Validation (2 minutes)
 
 ```python
 from true_lies import ConversationValidator
 
 def test_chatbot_support():
-    """Test completo de chatbot de soporte"""
+    """Complete support chatbot test"""
     
-    # Crear validador
+    # Create validator
     conv = ConversationValidator()
     
-    # Turn 1: Usuario reporta problema
+    # Turn 1: User reports problem
     conv.add_turn_and_report(
-        user_input="Mi app no funciona, soy usuario ID 12345",
-        bot_response="Hola, voy a ayudarte. ¿Qué error ves?",
-        expected_facts={'user_id': '12345', 'issue_type': 'app_no_funciona'},
-        title="Turn 1: Usuario reporta problema"
+        user_input="My app doesn't work, I'm user ID 12345",
+        bot_response="Hello, I'll help you. What error do you see?",
+        expected_facts={'user_id': '12345', 'issue_type': 'app_not_working'},
+        title="Turn 1: User reports problem"
     )
     
-    # Turn 2: Usuario da detalles
+    # Turn 2: User provides details
     conv.add_turn_and_report(
-        user_input="Error 500 en login, email juan@empresa.com",
-        bot_response="Entiendo, error 500 en login. Revisando tu cuenta.",
-        expected_facts={'error_code': '500', 'email': 'juan@empresa.com'},
-        title="Turn 2: Usuario proporciona detalles"
+        user_input="Error 500 on login, email john@company.com",
+        bot_response="I understand, error 500 on login. Checking your account.",
+        expected_facts={'error_code': '500', 'email': 'john@company.com'},
+        title="Turn 2: User provides details"
     )
     
-    # Mostrar resumen de conversación
-    conv.print_conversation_summary("Resumen de Conversación")
+    # Show conversation summary
+    conv.print_conversation_summary("Conversation Summary")
     
-    # Test final: ¿El bot recuerda todo?
-    final_response = "Juan (ID 12345), tu error 500 será solucionado en 2 horas"
+    # Final test: Does the bot remember everything?
+    final_response = "John (ID 12345), your error 500 will be fixed in 2 hours"
     retention = conv.validate_and_report(
         response=final_response,
         facts_to_check=['user_id', 'error_code', 'email'],
-        title="Test de Retención de Contexto"
+        title="Context Retention Test"
     )
     
-    # Retornar resultado para tests automatizados
+    # Return result for automated tests
     return retention['retention_score'] >= 0.8
 
-# Ejecutar test
+# Run test
 if __name__ == "__main__":
     test_chatbot_support()
 ```
 
-## 🎯 Casos de Uso Populares
+## 🎯 Popular Use Cases
 
 ### E-commerce
 ```python
-# Cliente comprando producto
+# Customer buying product
 conv.add_turn_and_report(
-    user_input="Hola, soy María, quiero comprar una laptop por $1500",
-    bot_response="Hola María! Te ayudo con la laptop. Email registrado: maria@tienda.com",
-    expected_facts={'customer_name': 'María', 'product': 'laptop', 'budget': '1500'},
-    title="Turn 1: Cliente se identifica"
+    user_input="Hello, I'm Maria, I want to buy a laptop for $1500",
+    bot_response="Hello Maria! I'll help you with the laptop. Registered email: maria@store.com",
+    expected_facts={'customer_name': 'Maria', 'product': 'laptop', 'budget': '1500'},
+    title="Turn 1: Customer identifies themselves"
 )
 ```
 
 ### Banking
 ```python
-# Cliente solicitando préstamo
+# Customer requesting loan
 conv.add_turn_and_report(
-    user_input="Soy Carlos, trabajo en TechCorp, gano $95,000, quiero un préstamo",
-    bot_response="Hola Carlos! Te ayudo con tu préstamo. Email: carlos@banco.com",
+    user_input="I'm Carlos, I work at TechCorp, I earn $95,000, I want a loan",
+    bot_response="Hello Carlos! I'll help you with your loan. Email: carlos@bank.com",
     expected_facts={'customer_name': 'Carlos', 'employer': 'TechCorp', 'income': '95000'},
-    title="Turn 1: Cliente solicita préstamo"
+    title="Turn 1: Customer requests loan"
 )
 ```
 
-### Soporte Técnico
+### Technical Support
 ```python
-# Usuario reporta problema
+# User reports problem
 conv.add_turn_and_report(
-    user_input="Mi app no funciona, soy usuario ID 12345",
-    bot_response="Hola, voy a ayudarte. ¿Qué error ves?",
-    expected_facts={'user_id': '12345', 'issue_type': 'app_no_funciona'},
-    title="Turn 1: Usuario reporta problema"
+    user_input="My app doesn't work, I'm user ID 12345",
+    bot_response="Hello, I'll help you. What error do you see?",
+    expected_facts={'user_id': '12345', 'issue_type': 'app_not_working'},
+    title="Turn 1: User reports problem"
 )
 ```
 
-## 🔧 Métodos Principales
+## 🔧 Main Methods
 
-### `add_turn_and_report()` - Agregar turno con reporting automático
+### `add_turn_and_report()` - Add turn with automatic reporting
 ```python
 conv.add_turn_and_report(
     user_input="...",
     bot_response="...",
     expected_facts={'key': 'value'},
-    title="Descripción del turno"
+    title="Turn description"
 )
 ```
 
-### `validate_and_report()` - Validar retención con reporting automático
+### `validate_and_report()` - Validate retention with automatic reporting
 ```python
 retention = conv.validate_and_report(
-    response="Respuesta del bot a validar",
+    response="Bot response to validate",
     facts_to_check=['fact1', 'fact2'],
-    title="Test de Retención"
+    title="Retention Test"
 )
 ```
 
-### `print_conversation_summary()` - Resumen de conversación
+### `print_conversation_summary()` - Conversation summary
 ```python
-conv.print_conversation_summary("Resumen de Conversación")
+conv.print_conversation_summary("Conversation Summary")
 ```
 
-## 📊 Tipos de Facts Soportados
+## 📊 Supported Fact Types
 
-La librería detecta automáticamente estos tipos de información:
+The library automatically detects these types of information:
 
-- **Nombres**: "Juan", "María González"
-- **Emails**: "juan@empresa.com", "maria@tienda.com"
-- **Teléfonos**: "+1-555-123-4567", "(555) 123-4567"
+- **Names**: "John", "Maria Gonzalez"
+- **Emails**: "john@company.com", "maria@store.com"
+- **Phones**: "+1-555-123-4567", "(555) 123-4567"
 - **IDs**: "12345", "USER-001", "POL-2024-001"
-- **Montos**: "$1,500", "1500", "USD 1500"
-- **Empleadores**: "TechCorp", "Google Inc", "Microsoft"
-- **Fechas**: "2024-12-31", "31/12/2024", "December 31, 2024"
-- **Porcentajes**: "15%", "15 percent", "fifteen percent"
+- **Amounts**: "$1,500", "1500", "USD 1500"
+- **Employers**: "TechCorp", "Google Inc", "Microsoft"
+- **Dates**: "2024-12-31", "31/12/2024", "December 31, 2024"
+- **Percentages**: "15%", "15 percent", "fifteen percent"
 
-## 🎨 Reporting Automático
+## 🎨 Automatic Reporting
 
-True Lies se encarga de todo el reporting. Solo necesitas 3 líneas:
+True Lies handles all the reporting. You only need 3 lines:
 
 ```python
-# Antes (30+ líneas de código manual)
-print(f"📊 Resultados detallados:")
+# Before (30+ lines of manual code)
+print(f"📊 Detailed results:")
 for fact in facts:
     retained = retention.get(f'{fact}_retained', False)
-    # ... 25 líneas más de prints manuales
+    # ... 25 more lines of manual prints
 
-# Después (3 líneas simples)
+# After (3 simple lines)
 retention = conv.validate_and_report(
     response=final_response,
     facts_to_check=['fact1', 'fact2'],
-    title="Test de Retención"
+    title="Retention Test"
 )
 ```
 
-## 📈 Métricas Automáticas
+## 📈 Automatic Metrics
 
-- **Retention Score**: 0.0 - 1.0 (qué tan bien recuerda)
-- **Facts Retained**: X/Y facts recordados
-- **Evaluación**: A, B, C, D, F (calificación automática)
-- **Detalles por Fact**: Qué se encontró y qué no
+- **Retention Score**: 0.0 - 1.0 (how well it remembers)
+- **Facts Retained**: X/Y facts remembered
+- **Evaluation**: A, B, C, D, F (automatic grading)
+- **Details per Fact**: What was found and what wasn't
 
-## 🚀 Ejemplos Completos
+## 🚀 Complete Examples
 
-### Ejemplo 1: Chatbot de Soporte
+### Example 1: Support Chatbot
 ```python
 from true_lies import ConversationValidator
 
 def test_support_chatbot():
     conv = ConversationValidator()
     
-    # Turn 1: Usuario reporta problema
+    # Turn 1: User reports problem
     conv.add_turn_and_report(
-        user_input="Mi app no funciona, soy usuario ID 12345",
-        bot_response="Hola, voy a ayudarte. ¿Qué error ves?",
-        expected_facts={'user_id': '12345', 'issue_type': 'app_no_funciona'},
-        title="Turn 1: Usuario reporta problema"
+        user_input="My app doesn't work, I'm user ID 12345",
+        bot_response="Hello, I'll help you. What error do you see?",
+        expected_facts={'user_id': '12345', 'issue_type': 'app_not_working'},
+        title="Turn 1: User reports problem"
     )
     
-    # Turn 2: Usuario da detalles
+    # Turn 2: User provides details
     conv.add_turn_and_report(
-        user_input="Error 500 en login, email juan@empresa.com",
-        bot_response="Entiendo, error 500 en login. Revisando tu cuenta.",
-        expected_facts={'error_code': '500', 'email': 'juan@empresa.com'},
-        title="Turn 2: Usuario proporciona detalles"
+        user_input="Error 500 on login, email john@company.com",
+        bot_response="I understand, error 500 on login. Checking your account.",
+        expected_facts={'error_code': '500', 'email': 'john@company.com'},
+        title="Turn 2: User provides details"
     )
     
-    # Test final
-    final_response = "Juan (ID 12345), tu error 500 será solucionado en 2 horas"
+    # Final test
+    final_response = "John (ID 12345), your error 500 will be fixed in 2 hours"
     retention = conv.validate_and_report(
         response=final_response,
         facts_to_check=['user_id', 'error_code', 'email'],
-        title="Test de Retención de Contexto"
+        title="Context Retention Test"
     )
     
     return retention['retention_score'] >= 0.8
@@ -230,35 +230,35 @@ if __name__ == "__main__":
     test_support_chatbot()
 ```
 
-### Ejemplo 2: E-commerce
+### Example 2: E-commerce
 ```python
 from true_lies import ConversationValidator
 
 def test_ecommerce_chatbot():
     conv = ConversationValidator()
     
-    # Turn 1: Cliente se identifica
+    # Turn 1: Customer identifies themselves
     conv.add_turn_and_report(
-        user_input="Hola, soy María González, email maria@tienda.com, quiero comprar una laptop",
-        bot_response="Hola María! Te ayudo con la laptop. Email registrado: maria@tienda.com",
-        expected_facts={'customer_name': 'María González', 'email': 'maria@tienda.com', 'product_interest': 'laptop'},
-        title="Turn 1: Cliente se identifica"
+        user_input="Hello, I'm Maria Gonzalez, email maria@store.com, I want to buy a laptop",
+        bot_response="Hello Maria! I'll help you with the laptop. Registered email: maria@store.com",
+        expected_facts={'customer_name': 'Maria Gonzalez', 'email': 'maria@store.com', 'product_interest': 'laptop'},
+        title="Turn 1: Customer identifies themselves"
     )
     
-    # Turn 2: Cliente especifica presupuesto
+    # Turn 2: Customer specifies budget
     conv.add_turn_and_report(
-        user_input="Mi presupuesto es $1500, necesito para programar",
-        bot_response="Perfecto María, tenemos laptops para programar en ese rango. Te envío opciones a maria@tienda.com",
-        expected_facts={'budget': '1500', 'use_case': 'programar'},
-        title="Turn 2: Cliente especifica presupuesto"
+        user_input="My budget is $1500, I need it for programming",
+        bot_response="Perfect Maria, we have laptops for programming in that range. I'll send options to maria@store.com",
+        expected_facts={'budget': '1500', 'use_case': 'programming'},
+        title="Turn 2: Customer specifies budget"
     )
     
-    # Test final
-    final_response = "María, tu laptop de programación por $1500 está lista. Te envío la factura a maria@tienda.com"
+    # Final test
+    final_response = "Maria, your programming laptop for $1500 is ready. I'll send the invoice to maria@store.com"
     retention = conv.validate_and_report(
         response=final_response,
         facts_to_check=['customer_name', 'email', 'budget', 'use_case'],
-        title="Test de Retención E-commerce"
+        title="E-commerce Retention Test"
     )
     
     return retention['retention_score'] >= 0.8
@@ -267,31 +267,31 @@ if __name__ == "__main__":
     test_ecommerce_chatbot()
 ```
 
-## 🔍 Validación Avanzada (Opcional)
+## 🔍 Advanced Validation (Optional)
 
-Para casos más complejos, también puedes usar la validación tradicional:
+For more complex cases, you can also use traditional validation:
 
 ```python
 from true_lies import create_scenario, validate_llm_candidates
 
-# Facts que DEBEN estar en la respuesta
+# Facts that MUST be in the response
 facts = {
     'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
     'premium': {'extractor': 'money', 'expected': '850.00'},
     'coverage_type': {'extractor': 'categorical', 'expected': 'auto insurance'}
 }
 
-# Texto de referencia para comparación semántica
+# Reference text for semantic comparison
 reference_text = "Your auto insurance policy #POL-2024-001 has a premium of $850.00"
 
-# Crear escenario (con pesos automáticos de hechos)
+# Create scenario (with automatic fact weighting)
 scenario = create_scenario(
     facts=facts,
     semantic_reference=reference_text,
-    semantic_mappings={}  # Los pesos se aplican automáticamente
+    semantic_mappings={}  # Weights are applied automatically
 )
 
-# Validar respuestas
+# Validate responses
 candidates = [
     "Policy POL-2024-001 covers your automobile with monthly payments of $850.00",
     "Your car insurance policy POL-2024-001 costs $850 monthly"
@@ -304,102 +304,102 @@ results = validate_llm_candidates(
 )
 ```
 
-### 🎯 Características Avanzadas
+### 🎯 Advanced Features
 
-**Pesos Automáticos de Hechos:**
-- Los valores `expected` en tus hechos se ponderan automáticamente
-- Mejora significativa en scores de similitud (+55% en casos típicos)
-- No necesitas configuración adicional
+**Automatic Fact Weighting:**
+- Values in your `expected` facts are automatically weighted
+- Significant improvement in similarity scores (+55% in typical cases)
+- No additional configuration needed
 
-**Detección de Polaridad Mejorada:**
-- Detecta correctamente frases negativas con "not", "does not", "don't", etc.
-- Patrones en inglés y español
-- Evita falsos positivos con subcadenas
+**Improved Polarity Detection:**
+- Correctly detects negative phrases with "not", "does not", "don't", etc.
+- Patterns in English and Spanish
+- Avoids false positives with substrings
 
-**Semantic Mappings Optimizados:**
-- Usa mappings simples y específicos
-- Evita sobre-mapeo que puede empeorar los scores
-- Recomendación: mappings mínimos o sin mappings
+**Optimized Semantic Mappings:**
+- Use simple and specific mappings
+- Avoid over-mapping that can worsen scores
+- Recommendation: minimal mappings or no mappings
 
-### 💡 Mejores Prácticas
+### 💡 Best Practices
 
-**1. Configuración de Hechos:**
+**1. Fact Configuration:**
 ```python
-# ✅ CORRECTO - Para números específicos
+# ✅ CORRECT - For specific numbers
 'account_number': {'extractor': 'number', 'expected': '2992'}
 
-# ❌ INCORRECTO - Para números específicos
+# ❌ INCORRECT - For specific numbers
 'account_number': {'extractor': 'categorical', 'expected': '2992'}
 
-# ✅ CORRECTO - Para categorías
+# ✅ CORRECT - For categories
 'account_type': {'extractor': 'categorical', 'expected': 'savings'}
 ```
 
 **2. Semantic Mappings:**
 ```python
-# ✅ CORRECTO - Mappings simples
+# ✅ CORRECT - Simple mappings
 semantic_mappings = {
     "account": ["cuenta"],
     "balance": ["saldo", "monto"]
 }
 
-# ❌ INCORRECTO - Mappings excesivos
+# ❌ INCORRECT - Excessive mappings
 semantic_mappings = {
-    "phrases": ["the balance of your", "your term deposit account", ...]  # Demasiado agresivo
+    "phrases": ["the balance of your", "your term deposit account", ...]  # Too aggressive
 }
 ```
 
 **3. Thresholds:**
-- **0.6-0.7**: Para validación estricta
-- **0.5-0.6**: Para validación permisiva
-- **0.8+**: Solo para casos exactos
+- **0.6-0.7**: For strict validation
+- **0.5-0.6**: For permissive validation
+- **0.8+**: Only for exact cases
 
-## 🎯 Extractores Disponibles
+## 🎯 Available Extractors
 
-- **`money`**: Valores monetarios ($1,234.56, USD 27, 100 dollars) - **Mejorado v0.6.2+**
-- **`number`**: Números generales (25, 3.14, 1000)
-- **`categorical`**: Valores categóricos con sinónimos - **Mejorado v0.6.2+**
-- **`email`**: Direcciones de email
-- **`phone`**: Números de teléfono
-- **`hours`**: Horarios (9:00 AM, 14:30, 3:00 PM)
-- **`id`**: Identificadores (USER-001, POL-2024-001)
-- **`regex`**: Patrones personalizados
+- **`money`**: Monetary values ($1,234.56, USD 27, 100 dollars) - **Improved v0.6.2+**
+- **`number`**: General numbers (25, 3.14, 1000)
+- **`categorical`**: Categorical values with synonyms - **Improved v0.6.2+**
+- **`email`**: Email addresses
+- **`phone`**: Phone numbers
+- **`hours`**: Time schedules (9:00 AM, 14:30, 3:00 PM)
+- **`id`**: Identifiers (USER-001, POL-2024-001)
+- **`regex`**: Custom patterns
 
-### 🔧 Mejoras en Extractores (v0.6.2+)
+### 🔧 Extractor Improvements (v0.6.2+)
 
-**Extractor `money` mejorado:**
-- Prioriza montos con símbolos de moneda ($, USD, dollars)
-- Evita capturar números no monetarios
-- Mejor precisión en escenarios bancarios
+**Improved `money` extractor:**
+- Prioritizes amounts with currency symbols ($, USD, dollars)
+- Avoids capturing non-monetary numbers
+- Better accuracy in banking scenarios
 
-**Extractor `categorical` mejorado:**
-- Coincidencias de palabras completas (evita falsos positivos)
-- Mejor detección de patrones específicos
-- Compatible con valores esperados exactos
+**Improved `categorical` extractor:**
+- Whole word matches (avoids false positives)
+- Better detection of specific patterns
+- Compatible with exact expected values
 
-## 📚 Documentación Completa
+## 📚 Complete Documentation
 
-- **[Guía de Validación Multiturno](MULTITURN_VALIDATION_README.md)** - Detalles completos
-- **[Guía de Integración](INTEGRATION_GUIDE.md)** - Cómo integrar en tu proyecto
-- **[Guía de Extracción de Emails](EMAIL_EXTRACTION_GUIDE.md)** - Extracción avanzada
-- **[Comparación Antes/Después](COMPARISON_BEFORE_AFTER.md)** - Mejoras de la librería
+- **[Multi-turn Validation Guide](MULTITURN_VALIDATION_README.md)** - Complete details
+- **[Integration Guide](INTEGRATION_GUIDE.md)** - How to integrate into your project
+- **[Email Extraction Guide](EMAIL_EXTRACTION_GUIDE.md)** - Advanced extraction
+- **[Before/After Comparison](COMPARISON_BEFORE_AFTER.md)** - Library improvements
 
-## 🛠️ Herramientas de Diagnóstico
+## 🛠️ Diagnostic Tools
 
 ### Diagnostic Tool
-Para diagnosticar problemas de similitud y extracción:
+To diagnose similarity and extraction issues:
 
 ```python
 from diagnostic_tool import run_custom_diagnosis
 
-# Tu configuración
+# Your configuration
 fact_configs = {
     'account_number': {'extractor': 'number', 'expected': '2992'},
     'balance_amount': {'extractor': 'money', 'expected': '3,000.60'}
 }
 candidates = ["Your account 2992 has $3,000.60"]
 
-# Diagnosticar
+# Diagnose
 run_custom_diagnosis(
     text="The balance of your Term Deposit account 2992 is $3,000.60",
     fact_configs=fact_configs,
@@ -409,43 +409,43 @@ run_custom_diagnosis(
 
 ## 🔄 Changelog
 
-### v0.6.4 (Actual)
-- ✅ Detección de polaridad mejorada (detecta "not", "does not", etc.)
-- ✅ Patrones negativos completos en inglés y español
-- ✅ Evita falsos positivos con subcadenas
+### v0.6.4 (Current)
+- ✅ Improved polarity detection (detects "not", "does not", etc.)
+- ✅ Complete negative patterns in English and Spanish
+- ✅ Avoids false positives with substrings
 
 ### v0.6.3
-- ✅ Función duplicada eliminada
-- ✅ API consistente
-- ✅ Código limpio
+- ✅ Duplicate function removed
+- ✅ Consistent API
+- ✅ Clean code
 
 ### v0.6.2
-- ✅ Pesos automáticos de hechos
-- ✅ Similitud mejorada (+55% en casos típicos)
-- ✅ Extractor de dinero mejorado
-- ✅ Reporting en inglés
+- ✅ Automatic fact weighting
+- ✅ Improved similarity (+55% in typical cases)
+- ✅ Improved money extractor
+- ✅ English reporting
 
-## 🤝 Contribuir
+## 🤝 Contributing
 
-¡Las contribuciones son bienvenidas! Por favor:
+Contributions are welcome! Please:
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📄 Licencia
+## 📄 License
 
-Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Agradecimientos
+## 🙏 Acknowledgments
 
-- NLTK por las capacidades de procesamiento de lenguaje natural
-- La comunidad open source por la inspiración y feedback
+- NLTK for natural language processing capabilities
+- The open source community for inspiration and feedback
 
 ---
 
-**True Lies - Donde la IA se encuentra con la realidad** 🎭
+**True Lies - Where AI meets reality** 🎭
 
-*¿Tienes preguntas? Abre un issue o contacta al equipo de desarrollo.*
+*Have questions? Open an issue or contact the development team.*
