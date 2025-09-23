@@ -1,0 +1,27 @@
+# Code Owners for true-lies-validator
+# This file specifies who can approve changes to different parts of the codebase
+
+# Global ownership - only the main maintainer can approve changes
+* @TheFreeRangeTester
+
+# Core library files require explicit approval
+/true_lies/ @TheFreeRangeTester
+/pyproject.toml @TheFreeRangeTester
+/setup.py @TheFreeRangeTester
+
+# Documentation and examples
+/README.md @TheFreeRangeTester
+/examples/ @TheFreeRangeTester
+/HTML_REPORTER_README.md @TheFreeRangeTester
+
+# CI/CD configurations
+/.github/ @TheFreeRangeTester
+/ci_cd/ @TheFreeRangeTester
+/.gitlab-ci.yml @TheFreeRangeTester
+
+# Tests
+/tests/ @TheFreeRangeTester
+
+# Configuration files
+/.gitignore @TheFreeRangeTester
+/LICENSE @TheFreeRangeTester
