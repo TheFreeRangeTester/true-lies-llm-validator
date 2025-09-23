@@ -1,0 +1,154 @@
+pipeline {
+    agent any
+    
+    environment {
+        TL_TEST_SUITE = 'ci_cd/sample_test_suite.json'
+        TL_REPORT_OUTPUT = 'test_results.html'
+        TL_REPORT_TITLE = "Jenkins - Chatbot Validation Report"
+        TL_THRESHOLD = '0.8'
+        TL_SLACK_WEBHOOK = credentials('slack-webhook-url')
+        TL_EMAIL_RECIPIENTS = credentials('email-recipients')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Setup Python Environment') {
+            steps {
+                sh '''
+                    python3 -m venv venv
+                    source venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -e .
+                    pip install requests
+                '''
+            }
+        }
+        
+        stage('Create Test Suite') {
+            steps {
+                sh '''
+                    source venv/bin/activate
+                    mkdir -p ci_cd
+                    python ci_cd/run_tests_and_report.py --create-sample
+                '''
+            }
+        }
+        
+        stage('Run Chatbot Validation Tests') {
+            steps {
+                sh '''
+                    source venv/bin/activate
+                    python ci_cd/run_tests_and_report.py
+                '''
+            }
+        }
+        
+        stage('Publish Test Results') {
+            steps {
+                publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: '.',
+                    reportFiles: 'test_results.html',
+                    reportName: 'Chatbot Validation Report'
+                ])
+                
+                // Archive the report for download
+                archiveArtifacts artifacts: 'test_results.html', fingerprint: true
+            }
+        }
+        
+        stage('Notify Results') {
+            steps {
+                script {
+                    // Read the report and extract metrics
+                    def reportContent = readFile('test_results.html')
+                    
+                    // Simple regex to extract metrics (in production, use proper HTML parsing)
+                    def totalMatch = reportContent =~ /Total Candidates.*?(\d+)/
+                    def passRateMatch = reportContent =~ /Success Rate.*?(\d+\.?\d*)%/
+                    
+                    def totalTests = totalMatch ? totalMatch[0][1] : 'Unknown'
+                    def passRate = passRateMatch ? passRateMatch[0][1] : 'Unknown'
+                    
+                    def message = """
+🤖 Chatbot Validation Results
+
+Build: ${env.BUILD_NUMBER}
+Branch: ${env.BRANCH_NAME}
+Pass Rate: ${passRate}%
+Total Tests: ${totalTests}
+
+View Report: ${env.BUILD_URL}HTML_Report/
+
+Build Status: ${currentBuild.result ?: 'SUCCESS'}
+                    """
+                    
+                    // Send Slack notification
+                    slackSend(
+                        channel: '#chatbot-tests',
+                        color: currentBuild.result == 'SUCCESS' ? 'good' : 'danger',
+                        message: message,
+                        teamDomain: 'your-team',
+                        token: env.TL_SLACK_WEBHOOK
+                    )
+                    
+                    // Send email notification
+                    emailext(
+                        subject: "Chatbot Validation ${currentBuild.result ?: 'SUCCESS'} - Build ${env.BUILD_NUMBER}",
+                        body: message,
+                        to: env.TL_EMAIL_RECIPIENTS,
+                        attachLog: true,
+                        attachmentsPattern: 'test_results.html'
+                    )
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            // Clean up workspace
+            cleanWs()
+        }
+        
+        success {
+            echo '✅ Chatbot validation tests passed!'
+        }
+        
+        failure {
+            echo '❌ Chatbot validation tests failed!'
+            
+            // Additional failure notifications
+            script {
+                def failureMessage = """
+❌ Chatbot Validation FAILED
+
+Build: ${env.BUILD_NUMBER}
+Branch: ${env.BRANCH_NAME}
+Build URL: ${env.BUILD_URL}
+
+Please check the test results and fix any issues with the chatbot responses.
+                """
+                
+                slackSend(
+                    channel: '#alerts',
+                    color: 'danger',
+                    message: failureMessage,
+                    teamDomain: 'your-team',
+                    token: env.TL_SLACK_WEBHOOK
+                )
+            }
+        }
+        
+        unstable {
+            echo '⚠️ Chatbot validation tests were unstable!'
+        }
+    }
+}

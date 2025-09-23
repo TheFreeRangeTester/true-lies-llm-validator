@@ -150,3 +150,25 @@ Thumbs.db
 # Keep README.md but ignore other .md files
 *.md
 !README.md
+
+# HTML Reports and generated files
+*.html
+*.pdf
+!examples/*.html
+!examples/*.pdf
+
+# Test chart files
+test_chart.html
+
+# CI/CD artifacts
+ci_cd/reports/
+ci_cd/artifacts/
+
+# IDE specific files
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp

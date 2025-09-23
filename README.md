@@ -11,10 +11,10 @@ Validates if your LLM or chatbot is telling the truth, remembering context and m
 pip install true-lies-validator
 
 # Verify installation
-python -c "from true_lies import ConversationValidator; print('✅ Installed correctly')"
+python -c "from true_lies import ConversationValidator, HTMLReporter; print('✅ Installed correctly')"
 ```
 
-> **📦 Current version: 0.6.4** - With improved polarity detection and automatic fact weighting
+> **📦 Current version: 0.7.0** - With HTML Reporter, interactive dashboards, and advanced analytics
 
 ## ⚡ Get Started in 2 Minutes
 
@@ -183,6 +183,184 @@ retention = conv.validate_and_report(
     title="Retention Test"
 )
 ```
+
+## 📊 HTML Reports & Dashboard
+
+Generate professional HTML reports with interactive dashboards for automated chatbot testing:
+
+### Quick HTML Report
+
+```python
+from true_lies import HTMLReporter
+
+# Generate test data
+results = [
+    {'test_name': 'Test 1', 'retention_score': 0.85, 'all_retained': True, 'facts_retained': 3, 'total_facts': 3, 'timestamp': '2024-12-31T10:00:00'},
+    {'test_name': 'Test 2', 'retention_score': 0.60, 'all_retained': False, 'facts_retained': 2, 'total_facts': 3, 'timestamp': '2024-12-31T11:00:00'}
+]
+
+# Generate HTML report
+reporter = HTMLReporter()
+output_file = reporter.generate_report(
+    results=results,
+    title="Chatbot Validation Report - December 2024",
+    show_details=True
+)
+
+print(f"📊 Report generated: {output_file}")
+```
+
+### Advanced Features
+
+**📈 Interactive Charts:**
+- Success Rate Analysis
+- Performance by Category
+- Response Time Analysis
+- Facts Retention Analysis
+- Weekly Performance Trends
+- Performance Comparisons
+
+**🔍 Advanced Filtering:**
+- Filter by score range
+- Filter by date range
+- Filter by facts count
+- Real-time search with smart operators
+- Sort by date, score, or status
+
+**📊 Temporal Analysis:**
+- Daily/Weekly/Monthly views
+- Baseline comparisons
+- Trend analysis
+- Performance tracking over time
+
+**📄 Export Options:**
+- PDF export with full formatting
+- High-quality charts and graphs
+- Multi-page reports
+- Professional styling
+
+**💬 Detailed Test Information:**
+- User input text
+- Bot response text
+- Expected response text
+- Reference text comparison
+- Facts analysis per test
+- Conversation summaries
+
+### Example: Complete Test Suite
+
+```python
+from true_lies import ConversationValidator, HTMLReporter
+from datetime import datetime, timedelta
+
+def run_comprehensive_tests():
+    """Run comprehensive chatbot tests and generate HTML report"""
+    
+    results = []
+    
+    # Test 1: Customer Service
+    conv1 = ConversationValidator()
+    conv1.add_turn(
+        user_input="Hello, I'm John, email john@company.com, ID 12345",
+        bot_response="Hello John, I'll help you",
+        expected_facts={'name': 'John', 'email': 'john@company.com', 'id': '12345'}
+    )
+    
+    result1 = conv1.validate_retention(
+        response="John (ID 12345), your request is processed. Confirmation sent to john@company.com",
+        facts_to_check=['name', 'email', 'id']
+    )
+    result1.update({
+        'test_name': 'Customer Service - User Identification',
+        'test_category': 'Customer Service',
+        'timestamp': datetime.now().isoformat(),
+        'user_input': "Hello, I'm John, email john@company.com, ID 12345",
+        'bot_response': "John (ID 12345), your request is processed. Confirmation sent to john@company.com",
+        'expected_response': "John (ID 12345), your request is processed. Confirmation sent to john@company.com"
+    })
+    results.append(result1)
+    
+    # Test 2: Technical Support
+    conv2 = ConversationValidator()
+    conv2.add_turn(
+        user_input="My app crashed, error code 500, user ID 67890",
+        bot_response="I'll help you with the crash",
+        expected_facts={'issue': 'app_crash', 'error': '500', 'user_id': '67890'}
+    )
+    
+    result2 = conv2.validate_retention(
+        response="User 67890, your error 500 crash will be fixed in 2 hours",
+        facts_to_check=['user_id', 'error']
+    )
+    result2.update({
+        'test_name': 'Technical Support - Error Reporting',
+        'test_category': 'Technical Support',
+        'timestamp': (datetime.now() - timedelta(hours=1)).isoformat(),
+        'user_input': "My app crashed, error code 500, user ID 67890",
+        'bot_response': "User 67890, your error 500 crash will be fixed in 2 hours",
+        'expected_response': "User 67890, your error 500 crash will be fixed in 2 hours"
+    })
+    results.append(result2)
+    
+    # Generate comprehensive HTML report
+    reporter = HTMLReporter()
+    output_file = reporter.generate_report(
+        results=results,
+        title="Comprehensive Chatbot Validation Report",
+        show_details=True
+    )
+    
+    print(f"✅ Comprehensive report generated: {output_file}")
+    return output_file
+
+# Run tests and generate report
+if __name__ == "__main__":
+    run_comprehensive_tests()
+```
+
+### CI/CD Integration
+
+The HTML Reporter integrates seamlessly with CI/CD pipelines:
+
+```yaml
+# GitHub Actions example
+- name: Run Chatbot Tests
+  run: |
+    python -m pytest tests/
+    python examples/comprehensive_test_suite.py
+
+- name: Upload HTML Report
+  uses: actions/upload-artifact@v3
+  with:
+    name: chatbot-validation-report
+    path: "*.html"
+```
+
+### Report Features
+
+**🎯 Key Metrics:**
+- Total candidates tested
+- Pass rate percentage
+- Average retention score
+- Facts retention rate
+
+**📊 Visual Analytics:**
+- Interactive Chart.js graphs
+- Real-time filtering and search
+- Temporal analysis controls
+- Performance comparisons
+
+**🔍 Detailed Analysis:**
+- Individual test results
+- Facts retention per test
+- Conversation text comparison
+- Failure analysis
+
+**📱 Responsive Design:**
+- Mobile-friendly interface
+- Professional styling
+- Export to PDF
+- Shareable reports
 
 ## 📈 Automatic Metrics
 
@@ -383,6 +561,22 @@ semantic_mappings = {
 - **[Integration Guide](INTEGRATION_GUIDE.md)** - How to integrate into your project
 - **[Email Extraction Guide](EMAIL_EXTRACTION_GUIDE.md)** - Advanced extraction
 - **[Before/After Comparison](COMPARISON_BEFORE_AFTER.md)** - Library improvements
+- **[HTML Reporter Guide](HTML_REPORTER_README.md)** - Complete HTML reporting documentation
+
+## 🎯 Examples & Demos
+
+### HTML Reporter Examples
+- **[Basic HTML Report](examples/html_report_example.py)** - Simple report generation
+- **[Advanced Filters Demo](examples/advanced_filters_demo.py)** - Advanced filtering capabilities
+- **[Temporal Analysis Demo](examples/temporal_analysis_demo.py)** - Temporal analysis features
+- **[Advanced Search Demo](examples/advanced_search_demo.py)** - Real-time search functionality
+- **[PDF Export Demo](examples/pdf_export_demo.py)** - PDF export capabilities
+
+### CI/CD Integration Examples
+- **[GitHub Actions](.github/workflows/chatbot-validation.yml)** - Automated testing workflow
+- **[Jenkins Pipeline](ci_cd/Jenkinsfile)** - Jenkins integration
+- **[GitLab CI](.gitlab-ci.yml)** - GitLab CI configuration
+- **[Test Runner](ci_cd/run_tests_and_report.py)** - Automated test execution
 
 ## 🛠️ Diagnostic Tools
 
@@ -409,7 +603,17 @@ run_custom_diagnosis(
 
 ## 🔄 Changelog
 
-### v0.6.4 (Current)
+### v0.7.0 (Current)
+- ✅ **NEW: HTML Reporter** - Professional HTML reports with interactive dashboards
+- ✅ **NEW: Interactive Charts** - Chart.js integration for visual analytics
+- ✅ **NEW: Advanced Filtering** - Real-time search and filtering capabilities
+- ✅ **NEW: Temporal Analysis** - Daily/Weekly/Monthly performance tracking
+- ✅ **NEW: PDF Export** - High-quality PDF reports with full formatting
+- ✅ **NEW: CI/CD Integration** - GitHub Actions, Jenkins, GitLab CI support
+- ✅ **NEW: Detailed Test Information** - User input, bot response, expected response comparison
+- ✅ **NEW: Responsive Design** - Mobile-friendly professional interface
+
+### v0.6.4
 - ✅ Improved polarity detection (detects "not", "does not", etc.)
 - ✅ Complete negative patterns in English and Spanish
 - ✅ Avoids false positives with substrings

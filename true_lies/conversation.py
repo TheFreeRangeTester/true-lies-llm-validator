@@ -476,7 +476,7 @@ class ConversationValidator:
             print(f"🔄 Turn History:")
             for i, turn in enumerate(summary['turn_history'], 1):
                 print(f"   Turn {i}:")
-                print(f"      Usuario: {turn['user_input'][:50]}{'...' if len(turn['user_input']) > 50 else ''}")
+                print(f"      User: {turn['user_input'][:50]}{'...' if len(turn['user_input']) > 50 else ''}")
                 print(f"      Bot: {turn['bot_response'][:50]}{'...' if len(turn['bot_response']) > 50 else ''}")
                 print(f"      Extracted facts: {len(turn['extracted_facts'])}")
             print()

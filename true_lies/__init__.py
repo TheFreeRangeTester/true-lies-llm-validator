@@ -54,6 +54,7 @@ from .utils import extract_fact
 from .polarity import POLARITY_PATTERNS, detect_polarity
 from .semantic import apply_semantic_mappings, calculate_semantic_similarity
 from .conversation import ConversationValidator
+from .html_reporter import HTMLReporter
 
 # API pública
 __all__ = [
@@ -75,7 +76,10 @@ __all__ = [
     'calculate_semantic_similarity',
     
     # Validación Multiturno
-    'ConversationValidator'
+    'ConversationValidator',
+    
+    # Reportes HTML
+    'HTMLReporter'
 ]
 
 # Información del paquete

@@ -1,0 +1,48 @@
+{
+  "name": "CI/CD Test Suite",
+  "description": "Sample test suite for CI/CD integration",
+  "tests": [
+    {
+      "name": "Customer Service Test",
+      "category": "Customer Service",
+      "turns": [
+        {
+          "user_input": "Hello, I am John Doe, email john@company.com, account 12345",
+          "bot_response": "Hello John, I will help you with your request",
+          "expected_facts": {
+            "name": "John Doe",
+            "email": "john@company.com",
+            "account": "12345"
+          }
+        }
+      ],
+      "final_response": "John Doe, your request for account 12345 has been processed. Confirmation sent to john@company.com",
+      "facts_to_check": [
+        "name",
+        "email",
+        "account"
+      ]
+    },
+    {
+      "name": "Technical Support Test",
+      "category": "Technical Support",
+      "turns": [
+        {
+          "user_input": "Hi, I am Jane Smith, email jane@tech.com, software issue",
+          "bot_response": "Hello Jane, I will help you with your software issue",
+          "expected_facts": {
+            "name": "Jane Smith",
+            "email": "jane@tech.com",
+            "issue": "software"
+          }
+        }
+      ],
+      "final_response": "Jane Smith, your software issue has been resolved. Details sent to jane@tech.com",
+      "facts_to_check": [
+        "name",
+        "email",
+        "issue"
+      ]
+    }
+  ]
+}

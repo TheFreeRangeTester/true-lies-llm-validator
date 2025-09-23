@@ -1,0 +1,117 @@
+name: Chatbot Validation Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: "0 2 * * *"
+
+jobs:
+  chatbot-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install requests  # For notifications
+
+      - name: Create test suite if not exists
+        run: |
+          mkdir -p ci_cd
+          python ci_cd/run_tests_and_report.py --create-sample
+
+      - name: Run chatbot validation tests
+        env:
+          TL_TEST_SUITE: ci_cd/sample_test_suite.json
+          TL_REPORT_OUTPUT: test_results.html
+          TL_REPORT_TITLE: "GitHub Actions - Chatbot Validation Report"
+          TL_THRESHOLD: 0.8
+          TL_SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TL_EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
+        run: |
+          python ci_cd/run_tests_and_report.py
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: chatbot-validation-report
+          path: test_results.html
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Read the HTML report and extract key metrics
+            try {
+              const reportPath = 'test_results.html';
+              if (fs.existsSync(reportPath)) {
+                const reportContent = fs.readFileSync(reportPath, 'utf8');
+                
+                // Extract metrics from HTML (simplified parsing)
+                const totalMatch = reportContent.match(/Total Candidates.*?(\d+)/);
+                const passRateMatch = reportContent.match(/Success Rate.*?(\d+\.?\d*)%/);
+                
+                const totalTests = totalMatch ? totalMatch[1] : 'Unknown';
+                const passRate = passRateMatch ? passRateMatch[1] : 'Unknown';
+                
+                const comment = `## 🤖 Chatbot Validation Results
+                
+                **Test Summary:**
+                - Total Tests: ${totalTests}
+                - Success Rate: ${passRate}%
+                
+                📊 [View Full Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+                
+                Report generated on: ${new Date().toISOString()}`;
+                
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comment
+                });
+              }
+            } catch (error) {
+              console.log('Could not parse report for PR comment:', error);
+            }
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const comment = `## ❌ Chatbot Validation Failed
+
+            The chatbot validation tests have failed. Please check the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+
+            This may indicate issues with:
+            - Chatbot response quality
+            - Context retention
+            - Fact extraction accuracy
+
+            Please review and fix the issues before merging.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

@@ -1,0 +1,174 @@
+stages:
+  - test
+  - report
+  - notify
+
+variables:
+  TL_TEST_SUITE: "ci_cd/sample_test_suite.json"
+  TL_REPORT_OUTPUT: "test_results.html"
+  TL_REPORT_TITLE: "GitLab CI - Chatbot Validation Report"
+  TL_THRESHOLD: "0.8"
+
+# Chatbot validation tests
+chatbot-validation:
+  stage: test
+  image: python:3.9-slim
+  
+  before_script:
+    - pip install --upgrade pip
+    - pip install -e .
+    - pip install requests
+    - mkdir -p ci_cd
+    - python ci_cd/run_tests_and_report.py --create-sample
+  
+  script:
+    - python ci_cd/run_tests_and_report.py
+  
+  artifacts:
+    reports:
+      junit: test_results.xml  # If you generate JUnit XML
+    paths:
+      - test_results.html
+    expire_in: 1 week
+    when: always
+  
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Generate and publish report
+publish-report:
+  stage: report
+  image: python:3.9-slim
+  
+  dependencies:
+    - chatbot-validation
+  
+  before_script:
+    - pip install --upgrade pip
+    - pip install -e .
+  
+  script:
+    - echo "Report already generated in previous stage"
+    - ls -la test_results.html
+  
+  artifacts:
+    paths:
+      - test_results.html
+    expire_in: 1 month
+    when: always
+  
+  only:
+    - main
+    - develop
+
+# Notify on success
+notify-success:
+  stage: notify
+  image: python:3.9-slim
+  
+  dependencies:
+    - chatbot-validation
+  
+  script:
+    - |
+      python3 << 'EOF'
+      import os
+      import json
+      import requests
+      
+      # Read the report and extract metrics
+      try:
+          with open('test_results.html', 'r') as f:
+              report_content = f.read()
+          
+          # Extract metrics (simplified parsing)
+          import re
+          total_match = re.search(r'Total Candidates.*?(\d+)', report_content)
+          pass_rate_match = re.search(r'Success Rate.*?(\d+\.?\d*)%', report_content)
+          
+          total_tests = total_match.group(1) if total_match else 'Unknown'
+          pass_rate = pass_rate_match.group(1) if pass_rate_match else 'Unknown'
+          
+          # GitLab API notification
+          message = f"""🤖 Chatbot Validation SUCCESS
+
+Pipeline: {os.getenv('CI_PIPELINE_ID')}
+Branch: {os.getenv('CI_COMMIT_REF_NAME')}
+Pass Rate: {pass_rate}%
+Total Tests: {total_tests}
+
+Pipeline URL: {os.getenv('CI_PIPELINE_URL')}"""
+          
+          print(message)
+          
+          # Send to GitLab API (if you have a webhook configured)
+          if os.getenv('GITLAB_WEBHOOK_URL'):
+              payload = {
+                  "text": message,
+                  "username": "GitLab CI",
+                  "icon_emoji": ":robot_face:"
+              }
+              response = requests.post(os.getenv('GITLAB_WEBHOOK_URL'), json=payload)
+              print(f"Webhook response: {response.status_code}")
+          
+      except Exception as e:
+          print(f"Error in notification: {e}")
+      EOF
+  
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Notify on failure
+notify-failure:
+  stage: notify
+  image: python:3.9-slim
+  
+  script:
+    - |
+      python3 << 'EOF'
+      import os
+      import requests
+      
+      message = f"""❌ Chatbot Validation FAILED
+
+Pipeline: {os.getenv('CI_PIPELINE_ID')}
+Branch: {os.getenv('CI_COMMIT_REF_NAME')}
+Pipeline URL: {os.getenv('CI_PIPELINE_URL')}
+
+Please check the test results and fix any issues with the chatbot responses."""
+      
+      print(message)
+      
+      # Send failure notification
+      if os.getenv('GITLAB_WEBHOOK_URL'):
+          payload = {
+              "text": message,
+              "username": "GitLab CI",
+              "icon_emoji": ":warning:"
+          }
+          response = requests.post(os.getenv('GITLAB_WEBHOOK_URL'), json=payload)
+          print(f"Failure webhook response: {response.status_code}")
+      EOF
+  
+  when: on_failure
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Schedule for daily runs
+chatbot-validation-daily:
+  extends: chatbot-validation
+  stage: test
+  
+  only:
+    - schedules
+  
+  variables:
+    TL_REPORT_TITLE: "Daily Chatbot Validation Report"
+    TL_SLACK_WEBHOOK: $SLACK_WEBHOOK_DAILY
+    TL_EMAIL_RECIPIENTS: $EMAIL_RECIPIENTS_DAILY
