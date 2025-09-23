@@ -168,7 +168,7 @@ class HTMLReporter:
             return ""
         
         return f"""<section class="charts-section">
-    <h2>📈 Analytics Dashboard</h2>
+    <h2>Analytics Dashboard</h2>
     <div class="charts-grid">
         <div class="chart-container">
             <h3>Success Rate Distribution</h3>
@@ -196,7 +196,7 @@ class HTMLReporter:
         </div>
     </div>
     <div class="temporal-controls">
-        <h3>📊 Temporal Analysis Controls</h3>
+        <h3>Temporal Analysis Controls</h3>
         <div class="control-group">
             <label for="periodSelect">Analysis Period:</label>
             <select id="periodSelect" onchange="updateTemporalAnalysis()">
@@ -236,7 +236,7 @@ class HTMLReporter:
         avg_score = metrics['avg_score']
         
         return f"""<header class="report-header">
-    <h1>🎭 {title}</h1>
+    <h1>{title}</h1>
     <div class="metrics-grid">
         <div class="metric-card">
             <div class="metric-value">{metrics['total_candidates']}</div>
@@ -268,13 +268,13 @@ class HTMLReporter:
         """Genera la tabla de resultados."""
         if not results:
             return """<div class="no-results">
-    <h2>📊 Results</h2>
+    <h2>Results</h2>
     <p>No results to display.</p>
 </div>"""
         
         # Header de la tabla
         table_header = """<div class="results-section">
-    <h2>📊 Detailed Results</h2>
+    <h2>Detailed Results</h2>
     <div class="table-container">
         <table class="results-table">
             <thead>
@@ -300,11 +300,11 @@ class HTMLReporter:
             # Determinar clase de status
             if all_retained:
                 status_class = 'success'
-                status_icon = '✅'
+                status_icon = '✓'
                 status_text = 'PASS'
             else:
                 status_class = 'danger'
-                status_icon = '❌'
+                status_icon = '✗'
                 status_text = 'FAIL'
             
             # Score class
@@ -325,6 +325,10 @@ class HTMLReporter:
             details_id = f"details_{i}"
             details_content = self._generate_candidate_details(result) if show_details else ""
             
+            # Crear botón y fila de detalles por separado
+            button_html = f'<button onclick="toggleDetails(\'{details_id}\')" class="btn-details">View Details</button>' if show_details else 'N/A'
+            details_row = f'<tr id="{details_id}" class="details-row" style="display: none;"><td colspan="6">{details_content}</td></tr>' if show_details else ''
+            
             row = f"""<tr class="result-row">
                 <td class="candidate-id">{i}</td>
                 <td class="score-cell {score_class}">{score:.3f}</td>
@@ -334,10 +338,10 @@ class HTMLReporter:
                 <td class="facts-cell">{facts_retained}/{total_facts}</td>
                 <td class="date-cell">{date_str}</td>
                 <td class="actions-cell">
-                    {f'<button onclick="toggleDetails(\'{details_id}\')" class="btn-details">View Details</button>' if show_details else 'N/A'}
+                    {button_html}
                 </td>
             </tr>
-            {f'<tr id="{details_id}" class="details-row" style="display: none;"><td colspan="6">{details_content}</td></tr>' if show_details else ''}"""
+            {details_row}"""
             
             table_rows.append(row)
     
@@ -353,15 +357,20 @@ class HTMLReporter:
         details = []
         
         # Información general
+        retention_score = f"{result.get('retention_score', 0.0):.3f}"
+        facts_retained = result.get('facts_retained', 0)
+        total_facts = result.get('total_facts', 0)
+        all_retained = result.get('all_retained', False)
+        
         details.append(f"""
         <div class="candidate-details">
-            <h4>📋 Test Information</h4>
+            <h4>Test Information</h4>
             <div class="detail-grid">
                 <div><strong>Test Name:</strong> {result.get('test_name', 'N/A')}</div>
                 <div><strong>Test Category:</strong> {result.get('test_category', 'N/A')}</div>
-                <div><strong>Retention Score:</strong> {result.get('retention_score', 0.0):.3f}</div>
-                <div><strong>Facts Retained:</strong> {result.get('facts_retained', 0)}/{result.get('total_facts', 0)}</div>
-                <div><strong>All Retained:</strong> {'✅ Yes' if result.get('all_retained', False) else '❌ No'}</div>
+                <div><strong>Retention Score:</strong> {retention_score}</div>
+                <div><strong>Facts Retained:</strong> {facts_retained}/{total_facts}</div>
+                <div><strong>All Retained:</strong> {'✓ Yes' if all_retained else '✗ No'}</div>
                 <div><strong>Timestamp:</strong> {result.get('timestamp', 'N/A')}</div>
             </div>
         """)
@@ -381,7 +390,7 @@ class HTMLReporter:
                     expected = result.get(f'{fact_name}_expected', 'N/A')
                     reason = result.get(f'{fact_name}_reason', '')
                     
-                    status_icon = '✅' if retained else '❌'
+                    status_icon = '✓' if retained else '✗'
                     
                     fact_details.append(f"""
                     <div class="fact-detail">
@@ -404,7 +413,7 @@ class HTMLReporter:
                 expected = fact_data.get('expected', 'N/A')
                 reason = fact_data.get('reason', '')
                 
-                status_icon = '✅' if retained else '❌'
+                status_icon = '✓' if retained else '❌'
                 
                 fact_details.append(f"""
                 <div class="fact-detail">
@@ -422,7 +431,7 @@ class HTMLReporter:
         
         if fact_details:
             details.append("""
-            <h4>🔍 Facts Analysis</h4>
+            <h4>Facts Analysis</h4>
             <div class="facts-details">
             """ + '\n'.join(fact_details) + """
             </div>
@@ -431,7 +440,7 @@ class HTMLReporter:
         # Textos de entrada y respuesta
         if 'user_input' in result or 'bot_response' in result or 'expected_response' in result:
             details.append("""
-            <h4>💬 Conversation Texts</h4>
+            <h4>Conversation Texts</h4>
             <div class="conversation-texts">
             """)
             
@@ -454,7 +463,7 @@ class HTMLReporter:
             if 'expected_response' in result:
                 details.append(f"""
                 <div class="text-section">
-                    <h5>📋 Expected Response:</h5>
+                    <h5>Expected Response:</h5>
                     <div class="text-content expected-response">{result['expected_response']}</div>
                 </div>
                 """)
@@ -462,7 +471,7 @@ class HTMLReporter:
             if 'reference_text' in result:
                 details.append(f"""
                 <div class="text-section">
-                    <h5>📚 Reference Text:</h5>
+                    <h5>Reference Text:</h5>
                     <div class="text-content reference-text">{result['reference_text']}</div>
                 </div>
                 """)
@@ -482,7 +491,7 @@ class HTMLReporter:
         
         if additional_info:
             details.append(f"""
-            <h4>📊 Additional Metrics</h4>
+            <h4>Additional Metrics</h4>
             <div class="detail-grid">
                 {''.join(additional_info)}
             </div>
@@ -492,7 +501,7 @@ class HTMLReporter:
         if 'conversation_summary' in result:
             conv_summary = result['conversation_summary']
             details.append(f"""
-            <h4>💬 Conversation Summary</h4>
+            <h4>Conversation Summary</h4>
             <div class="conversation-summary">
                 <div><strong>Total turns:</strong> {conv_summary.get('total_turns', 0)}</div>
                 <div><strong>Total facts:</strong> {conv_summary.get('total_facts', 0)}</div>
@@ -1029,8 +1038,8 @@ class HTMLReporter:
     def _generate_footer(self) -> str:
         """Genera el footer del reporte."""
         return """<footer class="report-footer">
-    <p>🎭 Generated by True Lies Validator v0.6.4</p>
-    <p>📧 <a href="mailto:patominer@gmail.com">patominer@gmail.com</a></p>
+    <p>Generated by True Lies Validator v0.6.4</p>
+    <p><a href="mailto:patominer@gmail.com">patominer@gmail.com</a></p>
 </footer>"""
     
     def _get_css_styles(self) -> str:
