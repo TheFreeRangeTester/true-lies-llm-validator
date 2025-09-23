@@ -1,175 +1,231 @@
-from true_lies import validation_core as core
+#!/usr/bin/env python3
+"""
+Tests for the core validation functionality using the new API
+"""
 
-# --------------------------
-# Original tests
-# --------------------------
-def test_validate_factual_match():
-    candidate = "price: 299.99, color: red, size: L"
-    reference_values = {"price": "299.99", "color": "red", "size": "L"}
-    result = core.validate_factual(candidate, reference_values)
-    assert result["is_valid"] is True
-    for detail in result["details"].values():
-        assert detail["match"] is True
+from true_lies import create_scenario, validate_against_reference_dynamic, extract_fact
 
-def test_validate_factual_mismatch():
-    candidate = "price: 299.99, color: blue, size: L"
-    reference_values = {"price": "299.99", "color": "red", "size": "L"}
-    result = core.validate_factual(candidate, reference_values)
-    assert result["is_valid"] is False
-    assert result["details"]["color"]["match"] is False
+def test_create_scenario():
+    """Test scenario creation"""
+    scenario = create_scenario(
+        facts={
+            'price': {'extractor': 'money', 'expected': '299.99'},
+            'color': {
+                'extractor': 'categorical', 
+                'expected': 'red',
+                'patterns': {
+                    'red': ['red', 'crimson', 'scarlet'],
+                    'blue': ['blue', 'navy', 'azure']
+                }
+            },
+            'size': {
+                'extractor': 'categorical', 
+                'expected': 'L',
+                'patterns': {
+                    'L': ['L', 'large', 'Large'],
+                    'M': ['M', 'medium', 'Medium'],
+                    'S': ['S', 'small', 'Small']
+                }
+            }
+        },
+        semantic_reference='Product with price $299.99, color red, size L',
+        semantic_mappings={
+            'product': ['item', 'article'],
+            'price': ['cost', 'amount']
+        }
+    )
+    
+    assert 'facts' in scenario
+    assert 'semantic_reference' in scenario
+    assert 'semantic_mappings' in scenario
+    assert scenario['facts']['price']['expected'] == '299.99'
 
-def test_validate_semantic_high_similarity():
-    candidate = "The red shirt costs $299.99 and is size L"
-    reference = "price: 299.99, color: red, size: L"
-    result = core.validate_semantic(candidate, reference, threshold=0.5)
-    assert result["is_valid"] is True
-    assert 0 <= result["similarity_score"] <= 1
+def test_validate_against_reference_dynamic_pass():
+    """Test validation with matching facts"""
+    scenario = create_scenario(
+        facts={
+            'price': {'extractor': 'money', 'expected': '299.99'},
+            'color': {
+                'extractor': 'categorical', 
+                'expected': 'red',
+                'patterns': {
+                    'red': ['red', 'crimson', 'scarlet'],
+                    'blue': ['blue', 'navy', 'azure']
+                }
+            },
+            'size': {
+                'extractor': 'categorical', 
+                'expected': 'L',
+                'patterns': {
+                    'L': ['L', 'large', 'Large'],
+                    'M': ['M', 'medium', 'Medium'],
+                    'S': ['S', 'small', 'Small']
+                }
+            }
+        },
+        semantic_reference='Product with price $299.99, color red, size L',
+        semantic_mappings={
+            'product': ['item', 'article'],
+            'price': ['cost', 'amount']
+        }
+    )
+    
+    candidate = "This item costs $299.99, comes in red color and size L"
+    result = validate_against_reference_dynamic(candidate, scenario, similarity_threshold=0.7)
+    
+    assert result['factual_accuracy'] is True
+    assert result['similarity_score'] > 0.7
+    assert result['is_valid'] is True
 
-def test_validate_semantic_low_similarity():
-    candidate = "A green hat for $49"
-    reference = "price: 299.99, color: red, size: L"
-    result = core.validate_semantic(candidate, reference, threshold=0.5)
-    assert result["is_valid"] is False
+def test_validate_against_reference_dynamic_fail():
+    """Test validation with mismatching facts"""
+    scenario = create_scenario(
+        facts={
+            'price': {'extractor': 'money', 'expected': '299.99'},
+            'color': {
+                'extractor': 'categorical', 
+                'expected': 'red',
+                'patterns': {
+                    'red': ['red', 'crimson', 'scarlet'],
+                    'blue': ['blue', 'navy', 'azure']
+                }
+            },
+            'size': {
+                'extractor': 'categorical', 
+                'expected': 'L',
+                'patterns': {
+                    'L': ['L', 'large', 'Large'],
+                    'M': ['M', 'medium', 'Medium'],
+                    'S': ['S', 'small', 'Small']
+                }
+            }
+        },
+        semantic_reference='Product with price $299.99, color red, size L',
+        semantic_mappings={
+            'product': ['item', 'article'],
+            'price': ['cost', 'amount']
+        }
+    )
+    
+    candidate = "This item costs $199.99, comes in blue color and size M"
+    result = validate_against_reference_dynamic(candidate, scenario, similarity_threshold=0.7)
+    
+    assert result['factual_accuracy'] is False
+    assert result['is_valid'] is False
 
-def test_validate_polarity_positive():
-    candidate = "You can earn rewards daily"
-    reference = "This account earns interest daily"
-    result = core.validate_polarity(candidate, reference)
-    assert result["polarity_match"] is True
+def test_extract_fact_money():
+    """Test money extraction"""
+    config = {'extractor': 'money', 'expected': '299.99'}
+    text = "The price is $299.99"
+    result = extract_fact(text, config)
+    assert result == '299.99'
 
-def test_validate_polarity_negative():
-    candidate = "You cannot earn rewards"
-    reference = "This account earns interest daily"
-    result = core.validate_polarity(candidate, reference)
-    assert result["polarity_match"] is False
-    assert "Polarity mismatch" in result["failure_reason"]
+def test_extract_fact_categorical():
+    """Test categorical extraction"""
+    config = {
+        'extractor': 'categorical', 
+        'expected': 'red',
+        'patterns': {
+            'red': ['red', 'crimson', 'scarlet'],
+            'blue': ['blue', 'navy', 'azure']
+        }
+    }
+    text = "The color is red"
+    result = extract_fact(text, config)
+    assert result == 'red'
 
-# --------------------------
-# Banking scenarios
-# --------------------------
-def test_bank_factual():
-    candidate = "balance: 5250.75, account_type: term_deposit"
-    reference_values = {"balance": "5250.75", "account_type": "term_deposit"}
-    result = core.validate_factual(candidate, reference_values)
-    assert result["is_valid"] is True
+def test_extract_fact_number():
+    """Test number extraction"""
+    config = {'extractor': 'number', 'expected': '25'}
+    text = "There are 25 items"
+    result = extract_fact(text, config)
+    assert result == '25'
 
-def test_bank_polarity_negative():
-    candidate = "You cannot earn interest on this account"
-    reference = "This account earns interest daily"
-    result = core.validate_polarity(candidate, reference)
-    assert result["polarity_match"] is False
+def test_extract_fact_email():
+    """Test email extraction"""
+    config = {'extractor': 'email', 'expected': 'test@example.com'}
+    text = "Contact us at test@example.com"
+    result = extract_fact(text, config)
+    assert result == 'test@example.com'
 
-# --------------------------
-# Energy utility scenarios
-# --------------------------
-def test_energy_factual():
-    candidate = "consumption: 350 kWh, account: residential"
-    reference_values = {"consumption": "350", "account": "residential"}
-    result = core.validate_factual(candidate, reference_values)
-    assert result["is_valid"] is True
+def test_bank_scenario():
+    """Test banking scenario"""
+    scenario = create_scenario(
+        facts={
+            'account_balance': {'extractor': 'money', 'expected': '1500.00'},
+            'account_type': {
+                'extractor': 'categorical', 
+                'expected': 'savings',
+                'patterns': {
+                    'savings': ['savings', 'ahorro', 'ahorros'],
+                    'checking': ['checking', 'corriente', 'corrientes']
+                }
+            }
+        },
+        semantic_reference='Your savings account has a balance of $1500.00',
+        semantic_mappings={
+            'account': ['cuenta'],
+            'balance': ['saldo', 'monto'],
+            'savings': ['ahorro']
+        }
+    )
+    
+    candidate = "Su cuenta de ahorro tiene un saldo de $1500.00"
+    result = validate_against_reference_dynamic(candidate, scenario, similarity_threshold=0.6)
+    
+    assert result['factual_accuracy'] is True
+    assert result['similarity_score'] > 0.5
 
-def test_energy_semantic():
-    candidate = "Your home used 350 kilowatt hours last month"
-    reference = "consumption: 350 kWh, account: residential"
-    result = core.validate_semantic(candidate, reference, threshold=0.5, domain="energy")
-    assert result["is_valid"] is True
+def test_energy_scenario():
+    """Test energy scenario"""
+    scenario = create_scenario(
+        facts={
+            'consumption': {'extractor': 'number', 'expected': '250'},
+            'unit': {
+                'extractor': 'categorical', 
+                'expected': 'kWh',
+                'patterns': {
+                    'kWh': ['kWh', 'kilowatt', 'kilowatts'],
+                    'W': ['W', 'watt', 'watts']
+                }
+            }
+        },
+        semantic_reference='Energy consumption is 250 kWh',
+        semantic_mappings={
+            'energy': ['energia', 'electricidad'],
+            'consumption': ['consumo', 'gasto']
+        }
+    )
+    
+    candidate = "El consumo de energia es 250 kWh"
+    result = validate_against_reference_dynamic(candidate, scenario, similarity_threshold=0.6)
+    
+    assert result['factual_accuracy'] is True
+    assert result['similarity_score'] > 0.6
 
-# --------------------------
-# Retail scenarios
-# --------------------------
-def test_retail_factual():
-    candidate = "price: 49.99, color: blue, size: M"
-    reference_values = {"price": "49.99", "color": "blue", "size": "M"}
-    result = core.validate_factual(candidate, reference_values)
-    assert result["is_valid"] is True
-
-def test_retail_semantic_low_similarity():
-    candidate = "A red hat for $59"
-    reference = "price: 49.99, color: blue, size: M"
-    result = core.validate_semantic(candidate, reference, threshold=0.5)
-    assert result["is_valid"] is False
-
-def test_retail_polarity_positive():
-    candidate = "You can purchase this item now"
-    reference = "Item is available for purchase"
-    result = core.validate_polarity(candidate, reference)
-    assert result["polarity_match"] is True
-
-# --------------------------
-# validate_all tests
-# --------------------------
-def test_validate_all_pass():
-    candidate = "balance: 100, account_type: savings"
-    reference_values = {"balance": "100", "account_type": "savings"}
-    reference_text = "Your savings account balance is 100"
-
-    result = core.validate_all(candidate, reference_values, reference_text, domain="banking")
-
-    # Debug detallado por componente
-    print("\n=== DEBUG validate_all ===")
-    print("Overall is_valid:", result.get("is_valid"))
-
-    # Factual
-    factual = result.get("factual")
-    if factual:
-        print("\n[Factual Validation]")
-        for key, match in factual.items():
-            print(f"  Field '{key}': match={match}")
-
-    # Semantic
-    semantic = result.get("semantic")
-    if semantic:
-        print("\n[Semantic Validation]")
-        print("is_valid:", semantic.get("is_valid"))
-        print("similarity_score:", semantic.get("similarity_score"))
-
-    # Polarity
-    polarity = result.get("polarity")
-    if polarity:
-        print("\n[Polarity Validation]")
-        print("polarity_match:", polarity.get("polarity_match"))
-        if not polarity.get("polarity_match"):
-            print("failure_reason:", polarity.get("failure_reason"))
-
-    print("=========================\n")
-
-    # Asserts finales
-    assert result["is_valid"] is True
-
-def test_validate_all_factual_fail():
-    candidate = "balance: 200, account_type: savings"
-    reference_values = {"balance": "100", "account_type": "savings"}
-    reference_text = "Your savings account balance is 100"
-    result = core.validate_all(candidate, reference_values, reference_text, domain="banking")
-    assert result["is_valid"] is False
-    assert result["factual"]["is_valid"] is False
-
-def test_validate_all_semantic_fail():
-    candidate = "balance: 100, account_type: savings"
-    reference_values = {"balance": "100", "account_type": "savings"}
-    reference_text = "Completely unrelated text"
-    result = core.validate_all(candidate, reference_values, reference_text, domain="banking")
-    assert result["is_valid"] is False
-    assert result["semantic"]["is_valid"] is False
-
-def test_validate_all_polarity_fail():
-    candidate = "You cannot withdraw funds"
-    reference_values = {}
-    reference_text = "You can withdraw funds"
-    result = core.validate_all(candidate, reference_values, reference_text)
-    assert result["is_valid"] is False
-    assert result["polarity"]["polarity_match"] is False
-
-
-# --------------------------
-# Custom polarity direction test
-# --------------------------
-def test_polarity_reference_negative_candidate_positive():
-    """
-    Test that polarity validation fails when reference is negative and candidate is positive.
-    """
-    candidate = "You can withdraw funds at any time"
-    reference = "You cannot withdraw funds"
-    result = core.validate_polarity(candidate, reference)
-    assert result["polarity_match"] is False
-    assert "Polarity mismatch" in result["failure_reason"]
+def test_retail_scenario():
+    """Test retail scenario"""
+    scenario = create_scenario(
+        facts={
+            'product_name': {
+                'extractor': 'categorical', 
+                'expected': 'laptop',
+                'patterns': {
+                    'laptop': ['laptop', 'portatil', 'computadora'],
+                    'desktop': ['desktop', 'escritorio', 'computadora de escritorio']
+                }
+            },
+            'price': {'extractor': 'money', 'expected': '999.99'}
+        },
+        semantic_reference='Laptop on sale for $999.99',
+        semantic_mappings={
+            'laptop': ['portatil', 'computadora'],
+            'sale': ['oferta', 'rebaja']
+        }
+    )
+    
+    candidate = "Portatil en oferta por $999.99"
+    result = validate_against_reference_dynamic(candidate, scenario, similarity_threshold=0.6)
+    
+    assert result['factual_accuracy'] is True
+    assert result['similarity_score'] > 0.6
