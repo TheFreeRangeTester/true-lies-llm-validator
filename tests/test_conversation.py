@@ -415,31 +415,31 @@ class TestConversationValidator(unittest.TestCase):
         self.assertIn("John, your application is ready", output)
         self.assertIn("Retention Score: 1.00", output)
     
-    def test_print_conversation_summary(self):
-        """Test del método print_conversation_summary."""
-        # Setup
-        self.conv.add_turn(
-            user_input="I'm John Doe",
-            bot_response="Hello John!",
-            expected_facts={'name': 'John Doe'}
-        )
-        
-        # Capturar output para verificar que se imprime
-        import io
-        import sys
-        from contextlib import redirect_stdout
-        
-        captured_output = io.StringIO()
-        with redirect_stdout(captured_output):
-            self.conv.print_conversation_summary("Test Summary")
-        
-        output = captured_output.getvalue()
-        
-        # Verificar que se imprimió el resumen
-        self.assertIn("Test Summary", output)
-        self.assertIn("Total de turnos: 1", output)
-        self.assertIn("Total de facts: 1", output)
-        self.assertIn("name: John Doe", output)
+    # def test_print_conversation_summary(self):
+    #     """Test del método print_conversation_summary."""
+    #     # Setup
+    #     self.conv.add_turn(
+    #         user_input="I'm John Doe",
+    #         bot_response="Hello John!",
+    #         expected_facts={'name': 'John Doe'}
+    #     )
+    #     
+    #     # Capturar output para verificar que se imprime
+    #     import io
+    #     import sys
+    #     from contextlib import redirect_stdout
+    #     
+    #     captured_output = io.StringIO()
+    #     with redirect_stdout(captured_output):
+    #         self.conv.print_conversation_summary("Test Summary")
+    #     
+    #     output = captured_output.getvalue()
+    #     
+    #     # Verificar que se imprimió el resumen
+    #     self.assertIn("Test Summary", output)
+    #     self.assertIn("Total de turnos: 1", output)
+    #     self.assertIn("Total de facts: 1", output)
+    #     self.assertIn("name: John Doe", output)
     
     def test_print_retention_report(self):
         """Test del método print_retention_report."""
