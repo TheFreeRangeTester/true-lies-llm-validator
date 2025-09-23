@@ -330,7 +330,7 @@ The HTML Reporter integrates seamlessly with CI/CD pipelines:
     python examples/comprehensive_test_suite.py
 
 - name: Upload HTML Report
-  uses: actions/upload-artifact@v3
+  uses: actions/upload-artifact@v4
   with:
     name: chatbot-validation-report
     path: "*.html"

@@ -45,7 +45,7 @@ jobs:
           python ci_cd/run_tests_and_report.py
 
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: chatbot-validation-report
