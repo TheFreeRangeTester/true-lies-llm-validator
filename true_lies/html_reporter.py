@@ -347,13 +347,9 @@ class HTMLReporter:
         return """<section class="charts-section">
     <h2>Analytics Dashboard</h2>
     <div class="charts-grid">
-        <div class="chart-container">
+        <div class="chart-container chart-centered">
             <h3>Success Rate Distribution</h3>
             <canvas id="successRateChart" width="400" height="200"></canvas>
-        </div>
-        <div class="chart-container">
-            <h3>Performance by Category</h3>
-            <canvas id="categoryChart" width="400" height="200"></canvas>
         </div>
         <div class="chart-container chart-wide">
             <h3>Performance Trend</h3>
@@ -497,7 +493,7 @@ class HTMLReporter:
             details_content = self._generate_candidate_details(result) if show_details else ""
             
             # Create button and details row separately
-            button_html = f'<button onclick="toggleDetails(\'{details_id}\')" class="btn-details">View Details</button>' if show_details else 'N/A'
+            button_html = f'<button onclick="toggleDetails(\'{details_id}\')" class="btn-details" id="btn-{details_id}">View Details</button>' if show_details else 'N/A'
             details_row = f'<tr id="{details_id}" class="details-row" style="display: none;"><td colspan="6">{details_content}</td></tr>' if show_details else ''
             
             row = f"""<tr class="result-row">
@@ -892,40 +888,6 @@ class HTMLReporter:
             }}
         }});
         
-        // Gráfico de rendimiento por categoría
-        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-        
-        // Generar datos de categorías directamente
-        const categoryData = {{
-            labels: ['Customer Service', 'Technical Support', 'Sales', 'Partnership'],
-            values: [75, 85, 90, 70] // Porcentajes de éxito por categoría
-        }};
-        
-        new Chart(categoryCtx, {{
-            type: 'doughnut',
-            data: {{
-                labels: categoryData.labels,
-                datasets: [{{
-                    data: categoryData.values,
-                    backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545'],
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }}]
-            }},
-            options: {{
-                responsive: true,
-                plugins: {{
-                    legend: {{
-                        position: 'bottom'
-                    }},
-                    title: {{
-                        display: true,
-                        text: 'Performance by Test Category'
-                    }}
-                }}
-            }}
-        }});
-        
         // Gráfico de análisis de retención de facts
         const factRetentionCtx = document.getElementById('factRetentionChart').getContext('2d');
         
@@ -1114,10 +1076,16 @@ class HTMLReporter:
         // Función para mostrar/ocultar detalles
         function toggleDetails(detailsId) {{
             const detailsRow = document.getElementById(detailsId);
+            const button = document.getElementById('btn-' + detailsId);
+            
             if (detailsRow.style.display === 'none' || detailsRow.style.display === '') {{
                 detailsRow.style.display = 'table-row';
+                button.textContent = 'Hide Details';
+                button.classList.add('expanded');
             }} else {{
                 detailsRow.style.display = 'none';
+                button.textContent = 'View Details';
+                button.classList.remove('expanded');
             }}
         }}
         
@@ -1235,38 +1203,6 @@ class HTMLReporter:
                         values: [baseValues.currentAverage, baseValues.previousAverage, baseValues.historicalAverage, baseValues.target]
                     }};
             }}
-        }}
-        
-        // Función para generar datos de categorías
-        function generateCategoryData(data) {{
-            const results = data.results || [];
-            
-            if (results.length === 0) {{
-                return {{
-                    labels: ['No Data Available'],
-                    values: [1]
-                }};
-            }}
-            
-            const categories = {{}};
-            results.forEach(result => {{
-                const category = result.test_category || 'General';
-                if (!categories[category]) {{
-                    categories[category] = {{ total: 0, passed: 0 }};
-                }}
-                categories[category].total++;
-                if (result.retention_score >= 0.7) {{
-                    categories[category].passed++;
-                }}
-            }});
-            
-            const labels = Object.keys(categories);
-            const values = labels.map(cat => {{
-                const catData = categories[cat];
-                return (catData.passed / catData.total) * 100;
-            }});
-            
-            return {{ labels, values }};
         }}
         
         // Función para generar datos de tiempo de respuesta
@@ -1522,9 +1458,23 @@ class HTMLReporter:
             background: #0056b3;
         }
         
+        .btn-details.expanded {
+            background: #dc3545;
+        }
+        
+        .btn-details.expanded:hover {
+            background: #c82333;
+        }
+        
         .details-row td {
             background: #f8f9fa;
             border-top: none;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .details-row {
+            transition: all 0.3s ease;
         }
         
         .candidate-details {
@@ -1672,6 +1622,16 @@ class HTMLReporter:
         
         .chart-container.chart-wide {
             grid-column: span 2;
+        }
+        
+        .chart-container.chart-centered {
+            grid-column: span 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            max-width: 500px;
+            margin: 0 auto;
         }
         
         .chart-container h3 {
