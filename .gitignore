@@ -172,3 +172,40 @@ ci_cd/artifacts/
 # Temporary files
 *.tmp
 *.temp
+
+# Validation history and reporting data
+true_lies_reporting/
+validation_history.json
+
+# Test artifacts and debugging files
+test_*.html
+debug_*.html
+sorting_*.html
+enhanced_*.html
+final_*.html
+*_test.html
+*_debug.html
+
+# Python cache and compiled files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.egg-info/
+
+# IDE and editor files
+.vscode/settings.json
+.vscode/launch.json
+.idea/workspace.xml
+.idea/tasks.xml
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
