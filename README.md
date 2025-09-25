@@ -186,181 +186,134 @@ retention = conv.validate_and_report(
 
 ## 📊 HTML Reports & Dashboard
 
-Generate professional HTML reports with interactive dashboards for automated chatbot testing:
+Generate professional HTML reports with interactive dashboards in just **one line**:
 
-### Quick HTML Report
+### 🚀 Super Simple HTML Reports
 
 ```python
-from true_lies import HTMLReporter
+from true_lies import validate_llm_candidates
 
-# Generate test data
-results = [
-    {'test_name': 'Test 1', 'retention_score': 0.85, 'all_retained': True, 'facts_retained': 3, 'total_facts': 3, 'timestamp': '2024-12-31T10:00:00'},
-    {'test_name': 'Test 2', 'retention_score': 0.60, 'all_retained': False, 'facts_retained': 2, 'total_facts': 3, 'timestamp': '2024-12-31T11:00:00'}
+# Define your test scenario
+scenario = {
+    "name": "Insurance Policy Test",
+    "semantic_reference": "Your auto insurance policy #POL-2024-001 has a premium of $850.00",
+    "facts": {
+        "policy_number": {"expected": "POL-2024-001", "extractor": "regex", "pattern": r"#?(POL-\d{4}-\d{3})"},
+        "premium_amount": {"expected": "850.00", "extractor": "money"},
+        "insurance_type": {"expected": "auto insurance", "extractor": "categorical", "patterns": {"auto insurance": ["auto insurance", "car insurance"]}}
+    }
+}
+
+# Test multiple candidates
+candidates = [
+    "Your auto insurance policy #POL-2024-001 has a premium of $850.00",
+    "Auto insurance policy POL-2024-001 costs $850.00",
+    "Policy #POL-2024-001: $850.00 for auto insurance"
 ]
 
-# Generate HTML report
-reporter = HTMLReporter()
-output_file = reporter.generate_report(
-    results=results,
-    title="Chatbot Validation Report - December 2024",
-    show_details=True
+# Generate HTML report with ONE line! 🎉
+result = validate_llm_candidates(
+    scenario=scenario,
+    candidates=candidates,
+    threshold=0.65,
+    generate_html_report=True,  # ← This generates the report!
+    html_title="Insurance Policy Validation Report"
 )
 
-print(f"📊 Report generated: {output_file}")
+print(f"📊 Report saved to: {result['html_report_path']}")
 ```
 
-### Advanced Features
+### 🎨 Interactive Dashboard Features
 
-**📈 Interactive Charts:**
-- Success Rate Analysis
-- Performance by Category
-- Response Time Analysis
-- Facts Retention Analysis
-- Weekly Performance Trends
-- Performance Comparisons
+**📈 Real-time Analytics:**
+- **Success Rate Distribution** - Centered chart showing pass/fail distribution
+- **Performance Trend** - Historical performance with configurable target line
+- **Similarity Score Trend** - Semantic similarity tracking over time
+- **Fact Retention Trend** - Percentage of facts retained across tests
 
-**🔍 Advanced Filtering:**
-- Filter by score range
-- Filter by date range
-- Filter by facts count
-- Real-time search with smart operators
-- Sort by date, score, or status
+**🔍 Interactive Table:**
+- **Sortable columns** - Click headers to sort by ID, Score, Status, etc.
+- **Expandable details** - Click "View Details" to see full test information
+- **Card-style details** - Professional styling with smooth transitions
+- **Real-time filtering** - Filter and search through results
 
-**📊 Temporal Analysis:**
-- Daily/Weekly/Monthly views
-- Baseline comparisons
-- Trend analysis
-- Performance tracking over time
+**📊 Historical Data:**
+- **Automatic data persistence** - Results saved to `true_lies_reporting/validation_history.json`
+- **Temporal analysis** - Track performance over days/weeks/months
+- **Target control** - Set and adjust performance targets dynamically
+- **Trend visualization** - See improvement patterns over time
 
-**📄 Export Options:**
-- PDF export with full formatting
-- High-quality charts and graphs
-- Multi-page reports
-- Professional styling
+### 🎯 Key Benefits
 
-**💬 Detailed Test Information:**
-- User input text
-- Bot response text
-- Expected response text
-- Reference text comparison
-- Facts analysis per test
-- Conversation summaries
-
-### Example: Complete Test Suite
+- ✅ **One-line report generation** - No complex setup required
+- ✅ **Automatic data persistence** - Historical tracking built-in
+- ✅ **Interactive dashboards** - Professional charts and visualizations
+- ✅ **Real-time sorting** - Click to sort any column
+- ✅ **Expandable details** - Toggle detailed test information
+- ✅ **Responsive design** - Works on desktop and mobile
+- ✅ **Professional styling** - Ready for stakeholder presentations
+### 💡 Real-World Example: E-commerce Order Processing
 
 ```python
-from true_lies import ConversationValidator, HTMLReporter
-from datetime import datetime, timedelta
+from true_lies import validate_llm_candidates
 
-def run_comprehensive_tests():
-    """Run comprehensive chatbot tests and generate HTML report"""
-    
-    results = []
-    
-    # Test 1: Customer Service
-    conv1 = ConversationValidator()
-    conv1.add_turn(
-        user_input="Hello, I'm John, email john@company.com, ID 12345",
-        bot_response="Hello John, I'll help you",
-        expected_facts={'name': 'John', 'email': 'john@company.com', 'id': '12345'}
-    )
-    
-    result1 = conv1.validate_retention(
-        response="John (ID 12345), your request is processed. Confirmation sent to john@company.com",
-        facts_to_check=['name', 'email', 'id']
-    )
-    result1.update({
-        'test_name': 'Customer Service - User Identification',
-        'test_category': 'Customer Service',
-        'timestamp': datetime.now().isoformat(),
-        'user_input': "Hello, I'm John, email john@company.com, ID 12345",
-        'bot_response': "John (ID 12345), your request is processed. Confirmation sent to john@company.com",
-        'expected_response': "John (ID 12345), your request is processed. Confirmation sent to john@company.com"
-    })
-    results.append(result1)
-    
-    # Test 2: Technical Support
-    conv2 = ConversationValidator()
-    conv2.add_turn(
-        user_input="My app crashed, error code 500, user ID 67890",
-        bot_response="I'll help you with the crash",
-        expected_facts={'issue': 'app_crash', 'error': '500', 'user_id': '67890'}
-    )
-    
-    result2 = conv2.validate_retention(
-        response="User 67890, your error 500 crash will be fixed in 2 hours",
-        facts_to_check=['user_id', 'error']
-    )
-    result2.update({
-        'test_name': 'Technical Support - Error Reporting',
-        'test_category': 'Technical Support',
-        'timestamp': (datetime.now() - timedelta(hours=1)).isoformat(),
-        'user_input': "My app crashed, error code 500, user ID 67890",
-        'bot_response': "User 67890, your error 500 crash will be fixed in 2 hours",
-        'expected_response': "User 67890, your error 500 crash will be fixed in 2 hours"
-    })
-    results.append(result2)
-    
-    # Generate comprehensive HTML report
-    reporter = HTMLReporter()
-    output_file = reporter.generate_report(
-        results=results,
-        title="Comprehensive Chatbot Validation Report",
-        show_details=True
-    )
-    
-    print(f"✅ Comprehensive report generated: {output_file}")
-    return output_file
+# E-commerce order scenario
+scenario = {
+    "name": "Order Processing Test",
+    "semantic_reference": "Order #ORD-2024-789 for John Smith (john@email.com) - 2x Laptop ($1,200 each) = $2,400 total",
+    "facts": {
+        "order_id": {"expected": "ORD-2024-789", "extractor": "regex", "pattern": r"#?(ORD-\d{4}-\d{3})"},
+        "customer_name": {"expected": "John Smith", "extractor": "regex", "pattern": r"for\s+([A-Za-z\s]+)\s+\("},
+        "customer_email": {"expected": "john@email.com", "extractor": "email"},
+        "product_quantity": {"expected": "2", "extractor": "regex", "pattern": r"(\d+)x\s+Laptop"},
+        "product_name": {"expected": "Laptop", "extractor": "regex", "pattern": r"\d+x\s+([A-Za-z]+)"},
+        "unit_price": {"expected": "1200", "extractor": "money"},
+        "total_amount": {"expected": "2400", "extractor": "money"}
+    }
+}
 
-# Run tests and generate report
-if __name__ == "__main__":
-    run_comprehensive_tests()
+# Test various order processing responses
+candidates = [
+    "Order #ORD-2024-789 confirmed for John Smith (john@email.com) - 2x Laptop at $1,200 each = $2,400 total",
+    "John Smith's order ORD-2024-789: 2 Laptops for $1,200 each, total $2,400. Email: john@email.com",
+    "Order ORD-2024-789 processed. Customer: John Smith, 2x Laptop, $1,200 per unit, $2,400 total. Contact: john@email.com"
+]
+
+# Generate comprehensive report
+result = validate_llm_candidates(
+    scenario=scenario,
+    candidates=candidates,
+    threshold=0.70,
+    generate_html_report=True,
+    html_title="E-commerce Order Processing Validation"
+)
+
+print(f"📊 Order processing report: {result['html_report_path']}")
+print(f"✅ Overall accuracy: {result['summary']['overall_accuracy']:.1%}")
 ```
 
-### CI/CD Integration
+### 🚀 CI/CD Integration
 
-The HTML Reporter integrates seamlessly with CI/CD pipelines:
+Perfect for automated testing pipelines:
 
 ```yaml
 # GitHub Actions example
-- name: Run Chatbot Tests
+- name: Run LLM Validation Tests
   run: |
-    python -m pytest tests/
-    python examples/comprehensive_test_suite.py
+    python -c "
+    from true_lies import validate_llm_candidates
+    scenario = {'name': 'CI Test', 'semantic_reference': 'Test data', 'facts': {}}
+    candidates = ['Test response 1', 'Test response 2']
+    result = validate_llm_candidates(scenario, candidates, generate_html_report=True)
+    print(f'Report: {result[\"html_report_path\"]}')
+    "
 
-- name: Upload HTML Report
+- name: Upload Validation Report
   uses: actions/upload-artifact@v4
   with:
-    name: chatbot-validation-report
-    path: "*.html"
+    name: llm-validation-report
+    path: "validation_report_*.html"
 ```
-
-### Report Features
-
-**🎯 Key Metrics:**
-- Total candidates tested
-- Pass rate percentage
-- Average retention score
-- Facts retention rate
-
-**📊 Visual Analytics:**
-- Interactive Chart.js graphs
-- Real-time filtering and search
-- Temporal analysis controls
-- Performance comparisons
-
-**🔍 Detailed Analysis:**
-- Individual test results
-- Facts retention per test
-- Conversation text comparison
-- Failure analysis
-
-**📱 Responsive Design:**
-- Mobile-friendly interface
-- Professional styling
-- Export to PDF
-- Shareable reports
 
 ## 📈 Automatic Metrics
 
