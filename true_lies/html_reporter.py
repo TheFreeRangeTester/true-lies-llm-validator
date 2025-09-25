@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-HTML Reporter - Sistema de Reportes HTML para True Lies Validator
-================================================================
+HTML Reporter - HTML Reporting System for True Lies Validator
+=============================================================
 
-Genera reportes HTML profesionales para validaciones de chatbots y LLMs.
-Incluye métricas, tablas de resultados y análisis detallado.
+Generates professional HTML reports for chatbot and LLM validations.
+Includes metrics, results tables and detailed analysis.
 
-Uso básico:
+Basic usage:
     from true_lies.html_reporter import HTMLReporter
     
     reporter = HTMLReporter()
     reporter.generate_report(
         results=validation_results,
         output_file="report.html",
-        title="Pruebas de Chatbot"
+        title="Chatbot Tests"
     )
 """
 
@@ -26,47 +26,152 @@ from pathlib import Path
 
 class HTMLReporter:
     """
-    Generador de reportes HTML para validaciones de chatbots.
+    HTML report generator for chatbot validations.
     
-    Crea reportes profesionales con métricas, tablas de resultados
-    y análisis detallado de fallos.
+    Creates professional reports with metrics, results tables
+    and detailed failure analysis.
     """
     
     def __init__(self):
-        """Inicializar el generador de reportes."""
+        """Initialize the report generator."""
         self.template_dir = Path(__file__).parent / "templates"
         self.ensure_template_dir()
     
     def ensure_template_dir(self):
-        """Crear directorio de templates si no existe."""
+        """Create templates directory if it doesn't exist."""
         self.template_dir.mkdir(exist_ok=True)
+    
+    def _normalize_results(self, results: List[Dict[str, Any]], scenario: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+        """
+        Normalizes results for compatibility with both test types.
+        
+        Automatically detects if results are from:
+        - Multi-turn conversation (ConversationValidator)
+        - Candidate validation (validate_llm_candidates)
+        
+        Args:
+            results: List of results in any format
+            scenario: Optional scenario data for extracting expected values
+            
+        Returns:
+            List[Dict]: Results normalized to HTMLReporter expected format
+        """
+        if not results:
+            return results
+        
+        # Detect result type based on first element structure
+        first_result = results[0]
+        
+        # If has 'index', 'candidate', 'result', 'is_valid' -> from validate_llm_candidates
+        if all(key in first_result for key in ['index', 'candidate', 'result', 'is_valid']):
+            return self._normalize_candidate_results(results, scenario)
+        
+        # If already has 'retention_score', 'all_retained' -> from ConversationValidator
+        elif all(key in first_result for key in ['retention_score', 'all_retained']):
+            return results
+        
+        # If format not recognized, try to normalize as candidates
+        else:
+            return self._normalize_candidate_results(results, scenario)
+    
+    def _normalize_candidate_results(self, results: List[Dict[str, Any]], scenario: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+        """
+        Normalizes validate_llm_candidates results to HTMLReporter expected format.
+        
+        Args:
+            results: Results from validate_llm_candidates
+            scenario: Optional scenario data for extracting expected values
+            
+        Returns:
+            List[Dict]: Normalized results
+        """
+        normalized = []
+        
+        for item in results:
+            result_data = item['result']
+            
+            # Count retained facts
+            facts_retained = 0
+            total_facts = 0
+            facts_info = {}
+            
+            # Search all accuracy fields to count facts
+            for key, value in result_data.items():
+                if key.endswith('_accuracy'):
+                    fact_name = key.replace('_accuracy', '')
+                    
+                    # Skip 'factual' as it's not a real fact, just an internal field
+                    if fact_name == 'factual':
+                        continue
+                    
+                    total_facts += 1
+                    if value:
+                        facts_retained += 1
+                    
+                    # Create fact information
+                    expected_value = 'N/A'
+                    if scenario and 'facts' in scenario and fact_name in scenario['facts']:
+                        expected_value = scenario['facts'][fact_name].get('expected', 'N/A')
+                    
+                    facts_info[fact_name] = {
+                        'expected': expected_value,
+                        'extracted': result_data.get(f'extracted_{fact_name}', 'None'),
+                        'accuracy': value
+                    }
+            
+            # Create normalized result
+            normalized_result = {
+                'test_name': f"Candidate {item['index']}",
+                'retention_score': result_data.get('similarity_score', 0.0),
+                'all_retained': item['is_valid'],
+                'facts_retained': facts_retained,
+                'total_facts': total_facts,
+                'candidate_text': item['candidate'],
+                'timestamp': datetime.now().isoformat(),
+                'test_category': 'LLM Validation',
+                'facts_info': facts_info,
+                'similarity_score': result_data.get('similarity_score', 0.0),
+                'polarity_match': result_data.get('polarity_match', False),
+                'reference_polarity': result_data.get('reference_polarity', 'neutral'),
+                'candidate_polarity': result_data.get('candidate_polarity', 'neutral'),
+                'failure_reason': result_data.get('failure_reason', '')
+            }
+            
+            normalized.append(normalized_result)
+        
+        return normalized
     
     def generate_report(self, 
                        results: List[Dict[str, Any]], 
                        output_file: str,
                        title: str = "Chatbot Validation Report",
-                       show_details: bool = True) -> str:
+                       show_details: bool = True,
+                       scenario: Dict[str, Any] = None) -> str:
         """
-        Genera reporte HTML completo.
+        Generates complete HTML report.
         
         Args:
-            results: Lista de resultados de validación
-            output_file: Archivo de salida HTML
-            title: Título del reporte
-            show_details: Incluir detalles por candidato
+            results: List of validation results (conversation or candidates)
+            output_file: HTML output file
+            title: Report title
+            show_details: Include details per candidate
+            scenario: Optional scenario data for extracting expected values
         
         Returns:
-            str: Ruta del archivo generado
+            str: Path of generated file
         """
-        # Calcular métricas
-        metrics = self._calculate_metrics(results)
+        # Normalize results for compatibility with both test types
+        normalized_results = self._normalize_results(results, scenario)
         
-        # Generar HTML
+        # Calculate metrics
+        metrics = self._calculate_metrics(normalized_results)
+        
+        # Generate HTML
         html_content = self._generate_html_content(
-            results, metrics, title, show_details
+            normalized_results, metrics, title, show_details
         )
         
-        # Guardar archivo
+        # Save file
         output_path = Path(output_file)
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
@@ -74,7 +179,7 @@ class HTMLReporter:
         return str(output_path.absolute())
     
     def _calculate_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Calcula métricas generales del conjunto de resultados."""
+        """Calculates general metrics from the results set."""
         if not results:
             return {
                 'total_candidates': 0,
@@ -89,11 +194,11 @@ class HTMLReporter:
         passed = sum(1 for r in results if r.get('all_retained', False))
         failed = total - passed
         
-        # Calcular promedio de scores
+        # Calculate average scores
         scores = [r.get('retention_score', 0.0) for r in results]
         avg_score = sum(scores) / len(scores) if scores else 0.0
         
-        # Distribución de scores
+        # Score distribution
         score_ranges = {
             'A (0.9-1.0)': sum(1 for s in scores if s >= 0.9),
             'B (0.8-0.9)': sum(1 for s in scores if 0.8 <= s < 0.9),
@@ -116,24 +221,24 @@ class HTMLReporter:
                               metrics: Dict[str, Any],
                               title: str,
                               show_details: bool) -> str:
-        """Genera el contenido HTML completo."""
+        """Generates complete HTML content."""
         
-        # Head del HTML
+        # HTML head
         head = self._generate_head(title)
         
-        # Header con métricas
+        # Header with metrics
         header = self._generate_header(metrics, title)
         
-        # Sección de gráficos
+        # Charts section
         charts_section = self._generate_charts_section(results, metrics)
         
-        # Tabla de resultados
+        # Results table
         results_table = self._generate_results_table(results, show_details)
         
         # Footer
         footer = self._generate_footer()
         
-        # HTML completo
+        # Complete HTML
         html = f"""<!DOCTYPE html>
 <html lang="en">
 {head}
@@ -310,7 +415,7 @@ class HTMLReporter:
             # Score class
             score_class = self._get_score_class(score)
             
-            # Fecha (usar timestamp si está disponible, sino fecha actual)
+            # Date (use timestamp if available, otherwise current date)
             timestamp = result.get('timestamp', datetime.now().isoformat())
             if isinstance(timestamp, str):
                 try:
@@ -321,11 +426,11 @@ class HTMLReporter:
             else:
                 date_str = 'N/A'
             
-            # Detalles expandibles
+            # Expandable details
             details_id = f"details_{i}"
             details_content = self._generate_candidate_details(result) if show_details else ""
             
-            # Crear botón y fila de detalles por separado
+            # Create button and details row separately
             button_html = f'<button onclick="toggleDetails(\'{details_id}\')" class="btn-details">View Details</button>' if show_details else 'N/A'
             details_row = f'<tr id="{details_id}" class="details-row" style="display: none;"><td colspan="6">{details_content}</td></tr>' if show_details else ''
             
@@ -353,10 +458,10 @@ class HTMLReporter:
         return table_header + '\n'.join(table_rows) + table_footer
     
     def _generate_candidate_details(self, result: Dict[str, Any]) -> str:
-        """Genera los detalles expandibles de un candidato."""
+        """Generates expandable details for a candidate."""
         details = []
         
-        # Información general
+        # General information
         retention_score = f"{result.get('retention_score', 0.0):.3f}"
         facts_retained = result.get('facts_retained', 0)
         total_facts = result.get('total_facts', 0)
@@ -375,13 +480,34 @@ class HTMLReporter:
             </div>
         """)
         
-        # Detalles por fact específico
+        # Details by specific fact
         fact_details = []
         
-        # Buscar información específica de facts en el resultado
+        # Search for specific fact information in the result
         facts_info = result.get('facts_info', {})
-        if not facts_info:
-            # Si no hay facts_info, intentar extraer de otros campos
+        if facts_info:
+            # Use facts_info if available (normalized format)
+            for fact_name, fact_data in facts_info.items():
+                accuracy = fact_data.get('accuracy', False)
+                expected = fact_data.get('expected', 'N/A')
+                extracted = fact_data.get('extracted', 'N/A')
+                
+                status_icon = '✓' if accuracy else '✗'
+                
+                fact_details.append(f"""
+                <div class="fact-detail">
+                    <div class="fact-header">
+                        <span class="fact-name">{fact_name}</span>
+                        <span class="fact-status {status_icon}">{status_icon}</span>
+                    </div>
+                    <div class="fact-info">
+                        <div><strong>Expected:</strong> {expected}</div>
+                        <div><strong>Extracted:</strong> {extracted}</div>
+                    </div>
+                </div>
+                """)
+        else:
+            # If no facts_info, try to extract from other fields (conversation format)
             for key, value in result.items():
                 if key.endswith('_retained') and not key.startswith('all_'):
                     fact_name = key.replace('_retained', '')
@@ -405,29 +531,6 @@ class HTMLReporter:
                         </div>
                     </div>
                     """)
-        else:
-            # Usar facts_info si está disponible
-            for fact_name, fact_data in facts_info.items():
-                retained = fact_data.get('retained', False)
-                detected = fact_data.get('detected', 'N/A')
-                expected = fact_data.get('expected', 'N/A')
-                reason = fact_data.get('reason', '')
-                
-                status_icon = '✓' if retained else '❌'
-                
-                fact_details.append(f"""
-                <div class="fact-detail">
-                    <div class="fact-header">
-                        <span class="fact-name">{fact_name}</span>
-                        <span class="fact-status {status_icon}">{status_icon}</span>
-                    </div>
-                    <div class="fact-info">
-                        <div><strong>Expected:</strong> {expected}</div>
-                        <div><strong>Detected:</strong> {detected}</div>
-                        {f'<div class="fact-reason"><strong>Reason:</strong> {reason}</div>' if reason and not retained else ''}
-                    </div>
-                </div>
-                """)
         
         if fact_details:
             details.append("""
@@ -437,12 +540,41 @@ class HTMLReporter:
             </div>
             """)
         
-        # Textos de entrada y respuesta
-        if 'user_input' in result or 'bot_response' in result or 'expected_response' in result:
+        # Additional information for validated candidates
+        if result.get('test_category') == 'LLM Validation':
+            similarity_score = result.get('similarity_score', 0.0)
+            polarity_match = result.get('polarity_match', False)
+            reference_polarity = result.get('reference_polarity', 'neutral')
+            candidate_polarity = result.get('candidate_polarity', 'neutral')
+            failure_reason = result.get('failure_reason', '')
+            
+            details.append(f"""
+            <h4>Validation Details</h4>
+            <div class="validation-details">
+                <div class="detail-grid">
+                    <div><strong>Similarity Score:</strong> {similarity_score:.3f}</div>
+                    <div><strong>Polarity Match:</strong> {'✓ Yes' if polarity_match else '✗ No'}</div>
+                    <div><strong>Reference Polarity:</strong> {reference_polarity}</div>
+                    <div><strong>Candidate Polarity:</strong> {candidate_polarity}</div>
+                </div>
+                {f'<div class="failure-reason"><strong>Failure Reason:</strong> {failure_reason}</div>' if failure_reason else ''}
+            </div>
+            """)
+        
+        # Input and response texts
+        if 'user_input' in result or 'bot_response' in result or 'expected_response' in result or 'candidate_text' in result:
             details.append("""
-            <h4>Conversation Texts</h4>
+            <h4>Texts</h4>
             <div class="conversation-texts">
             """)
+            
+            if 'candidate_text' in result:
+                details.append(f"""
+                <div class="text-section">
+                    <h5>📝 Candidate Text:</h5>
+                    <div class="text-content candidate-text">{result['candidate_text']}</div>
+                </div>
+                """)
             
             if 'user_input' in result:
                 details.append(f"""
@@ -480,7 +612,7 @@ class HTMLReporter:
             </div>
             """)
         
-        # Información adicional del test
+        # Additional test information
         additional_info = []
         if 'response_quality' in result:
             additional_info.append(f"<div><strong>Response Quality:</strong> {result['response_quality']}</div>")
@@ -497,7 +629,7 @@ class HTMLReporter:
             </div>
             """)
         
-        # Conversación (si está disponible)
+        # Conversation (if available)
         if 'conversation_summary' in result:
             conv_summary = result['conversation_summary']
             details.append(f"""
@@ -513,21 +645,21 @@ class HTMLReporter:
         return '\n'.join(details)
     
     def _get_charts_javascript(self, results: List[Dict[str, Any]], metrics: Dict[str, Any]) -> str:
-        """Genera el JavaScript para los gráficos interactivos."""
+        """Generates JavaScript for interactive charts."""
         if not results:
             return ""
         
-        # Preparar datos para los gráficos
+        # Prepare data for charts
         scores = [r.get('retention_score', 0.0) for r in results]
         passed_count = metrics['passed']
         failed_count = metrics['failed']
         score_distribution = metrics['score_distribution']
         
-        # Datos para el gráfico de tendencia (simulado por índice)
+        # Data for trend chart (simulated by index)
         trend_labels = [f"Test {i+1}" for i in range(len(results))]
         trend_data = scores
         
-        # Datos para el análisis de facts
+        # Data for facts analysis
         facts_data = []
         facts_labels = []
         for result in results:

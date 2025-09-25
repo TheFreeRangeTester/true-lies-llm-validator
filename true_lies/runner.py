@@ -8,17 +8,20 @@ import json
 from pathlib import Path
 
 
-def validate_llm_candidates(scenario, candidates, threshold=0.65):
+def validate_llm_candidates(scenario, candidates, threshold=0.65, generate_html_report=False, html_output_file=None, html_title=None):
     """
-    Validates candidates using a scenario created with create_scenario and generates automatic report.
+    Validates candidates using a scenario created with create_scenario and optionally generates HTML report.
     
     Args:
         scenario: Scenario created with create_scenario (allows custom extractors)
         candidates: List of candidate texts
         threshold: Similarity threshold
+        generate_html_report: Whether to generate HTML report automatically
+        html_output_file: HTML output file path (default: auto-generated)
+        html_title: HTML report title (default: auto-generated)
     
     Returns:
-        dict: Validation results
+        dict: Validation results with optional HTML report path
     """
     total_candidates = len(candidates)
     factual_pass = 0
@@ -94,6 +97,32 @@ def validate_llm_candidates(scenario, candidates, threshold=0.65):
     print(f"Factual accuracy: {factual_pass/total_candidates:.1%}")
     print(f"Overall accuracy: {fully_valid/total_candidates:.1%}")
     
+    # Generate HTML report if requested
+    html_report_path = None
+    if generate_html_report:
+        from .html_reporter import HTMLReporter
+        
+        # Generate default file name and title if not provided
+        if not html_output_file:
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            html_output_file = f"validation_report_{timestamp}.html"
+        
+        if not html_title:
+            html_title = f"LLM Validation Report - {total_candidates} candidates"
+        
+        # Generate HTML report
+        reporter = HTMLReporter()
+        html_report_path = reporter.generate_report(
+            results=results,
+            output_file=html_output_file,
+            title=html_title,
+            scenario=scenario
+        )
+        
+        print(f"\n📊 HTML REPORT GENERATED:")
+        print(f"Report saved to: {html_report_path}")
+    
     return {
         'total_candidates': total_candidates,
         'factual_pass': factual_pass,
@@ -102,7 +131,8 @@ def validate_llm_candidates(scenario, candidates, threshold=0.65):
         'summary': {
             'factual_accuracy': factual_pass/total_candidates,
             'overall_accuracy': fully_valid/total_candidates
-        }
+        },
+        'html_report_path': html_report_path
     }
 
 
