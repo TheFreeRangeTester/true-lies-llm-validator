@@ -1,0 +1,504 @@
+{
+  "executions": [
+    {
+      "scenario_name": "insurance_validation_test",
+      "total_candidates": 5,
+      "passed": 0,
+      "failed": 5,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.8153779136024205,
+      "avg_factual_accuracy": 46.666666666666664,
+      "timestamp": "2025-09-25T14:27:41.495676"
+    },
+    {
+      "scenario_name": "insurance_validation_test",
+      "total_candidates": 5,
+      "passed": 0,
+      "failed": 5,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.8153779136024205,
+      "avg_factual_accuracy": 46.666666666666664,
+      "timestamp": "2025-09-25T14:27:43.322401"
+    },
+    {
+      "scenario_name": "insurance_validation_test",
+      "total_candidates": 5,
+      "passed": 0,
+      "failed": 5,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.8153779136024205,
+      "avg_factual_accuracy": 46.666666666666664,
+      "timestamp": "2025-09-25T14:27:45.288273"
+    },
+    {
+      "scenario_name": "insurance_validation",
+      "total_candidates": 4,
+      "passed": 0,
+      "failed": 4,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.7111793165051099,
+      "avg_factual_accuracy": 41.66666666666667,
+      "timestamp": "2025-09-25T14:29:22.060576"
+    },
+    {
+      "scenario_name": "insurance_validation",
+      "total_candidates": 5,
+      "passed": 0,
+      "failed": 5,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.7365962598568946,
+      "avg_factual_accuracy": 40.0,
+      "timestamp": "2025-09-25T14:29:23.067462"
+    },
+    {
+      "scenario_name": "insurance_validation",
+      "total_candidates": 6,
+      "passed": 0,
+      "failed": 6,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.7804968832140787,
+      "avg_factual_accuracy": 44.44444444444444,
+      "timestamp": "2025-09-25T14:29:24.073346"
+    },
+    {
+      "scenario_name": "banking_validation",
+      "total_candidates": 4,
+      "passed": 0,
+      "failed": 4,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.7315614116023454,
+      "avg_factual_accuracy": 16.666666666666664,
+      "timestamp": "2025-09-25T14:29:25.079974"
+    },
+    {
+      "scenario_name": "banking_validation",
+      "total_candidates": 5,
+      "passed": 0,
+      "failed": 5,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.7852491292818764,
+      "avg_factual_accuracy": 20.0,
+      "timestamp": "2025-09-25T14:29:26.085010"
+    },
+    {
+      "scenario_name": "banking_validation",
+      "total_candidates": 6,
+      "passed": 0,
+      "failed": 6,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.7476739043249049,
+      "avg_factual_accuracy": 22.22222222222222,
+      "timestamp": "2025-09-25T14:29:27.092439"
+    },
+    {
+      "scenario_name": "retail_validation",
+      "total_candidates": 4,
+      "passed": 0,
+      "failed": 4,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.7783141256334027,
+      "avg_factual_accuracy": 58.333333333333336,
+      "timestamp": "2025-09-25T14:29:28.098250"
+    },
+    {
+      "scenario_name": "retail_validation",
+      "total_candidates": 5,
+      "passed": 0,
+      "failed": 5,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.8226513005067222,
+      "avg_factual_accuracy": 60.0,
+      "timestamp": "2025-09-25T14:29:29.105398"
+    },
+    {
+      "scenario_name": "retail_validation",
+      "total_candidates": 6,
+      "passed": 0,
+      "failed": 6,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.8099382358891826,
+      "avg_factual_accuracy": 61.111111111111114,
+      "timestamp": "2025-09-25T14:29:30.109899"
+    },
+    {
+      "scenario_name": "final_metrics_demo",
+      "total_candidates": 3,
+      "passed": 0,
+      "failed": 3,
+      "pass_rate": 0.0,
+      "avg_similarity_score": 0.8249057553401467,
+      "avg_factual_accuracy": 44.44444444444444,
+      "timestamp": "2025-09-25T14:29:44.806224"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 11,
+      "failed": 1,
+      "pass_rate": 91.66666666666666,
+      "avg_similarity_score": 0.6847340762886976,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T14:32:46.288979"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 11,
+      "failed": 1,
+      "pass_rate": 91.66666666666666,
+      "avg_similarity_score": 0.6847340762886976,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T14:32:54.416780"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 11,
+      "failed": 1,
+      "pass_rate": 91.66666666666666,
+      "avg_similarity_score": 0.6847340762886976,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T14:34:23.345475"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.732100018317683,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T14:37:51.633297"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.732100018317683,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T14:39:45.932392"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.732100018317683,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T14:41:10.805795"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.732100018317683,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T14:42:49.546335"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.732100018317683,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T14:44:58.652859"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.732100018317683,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T14:47:34.320566"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.732100018317683,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T14:55:43.459016"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.732100018317683,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T14:58:18.583656"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.732100018317683,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:02:19.905185"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.732100018317683,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:03:58.200613"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 12,
+      "passed": 12,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.732100018317683,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:05:15.108940"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:06:08.857308"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 8,
+      "passed": 8,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.6922053460303893,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:06:48.354554"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:08:42.942809"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:09:07.393313"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:09:36.672509"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 8,
+      "passed": 8,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.6922053460303893,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:11:04.014147"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:12:31.321996"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7340384761249453,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:13:24.526124"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7340384761249453,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:13:57.442174"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 6,
+      "passed": 6,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7244797622121552,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:14:49.876031"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:16:51.148217"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:19:00.594057"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:21:54.274502"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7340384761249453,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:23:33.772173"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:24:20.001233"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:25:50.803636"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:28:03.619270"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:30:13.362780"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:31:12.296005"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:32:27.110060"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:35:04.852232"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:39:05.690549"
+    },
+    {
+      "scenario_name": "unknown",
+      "total_candidates": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "avg_similarity_score": 0.7314844276841624,
+      "avg_factual_accuracy": 100.0,
+      "timestamp": "2025-09-25T15:41:54.604087"
+    }
+  ]
+}

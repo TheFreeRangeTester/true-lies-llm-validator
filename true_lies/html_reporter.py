@@ -19,7 +19,7 @@ Basic usage:
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Union
 from pathlib import Path
 
@@ -141,12 +141,78 @@ class HTMLReporter:
         
         return normalized
     
+    def _save_execution_to_history(self, results: List[Dict[str, Any]], metrics: Dict[str, Any], scenario: Dict[str, Any] = None):
+        """Save current execution data to history for temporal analysis."""
+        try:
+            # Initialize history manager
+            history = ResultsHistory()
+            
+            # Extract execution data
+            execution_data = {
+                "scenario_name": scenario.get("name", "unknown") if scenario else "unknown",
+                "total_candidates": metrics["total_candidates"],
+                "passed": metrics["passed"],
+                "failed": metrics["failed"],
+                "pass_rate": metrics["pass_rate"],
+                "avg_similarity_score": metrics.get("avg_score", 0.0),
+                "avg_factual_accuracy": self._calculate_factual_accuracy(results),
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # Save to history
+            history.save_execution(execution_data)
+            
+        except Exception as e:
+            print(f"Warning: Could not save execution to history: {e}")
+    
+    def _calculate_factual_accuracy(self, results: List[Dict[str, Any]]) -> float:
+        """Calculate average factual accuracy from results."""
+        if not results:
+            return 0.0
+        
+        total_facts = 0
+        correct_facts = 0
+        
+        for result in results:
+            facts_info = result.get("facts_info", {})
+            for fact_name, fact_data in facts_info.items():
+                total_facts += 1
+                if fact_data.get("accuracy", False):
+                    correct_facts += 1
+        
+        return (correct_facts / total_facts * 100) if total_facts > 0 else 0.0
+    
+    def _get_temporal_data(self) -> Dict[str, Any]:
+        """Get real temporal data for charts."""
+        try:
+            history = ResultsHistory()
+            # Use daily data for more granular view, get last 7 days
+            return history.get_temporal_data("daily", 7)
+        except Exception as e:
+            print(f"Warning: Could not load temporal data: {e}")
+            return {"labels": [], "scores": [], "counts": []}
+    
+    def _get_comparison_data(self) -> Dict[str, Any]:
+        """Get real comparison data for charts."""
+        try:
+            history = ResultsHistory()
+            return history.get_comparison_data()
+        except Exception as e:
+            print(f"Warning: Could not load comparison data: {e}")
+            return {
+                "current_period": 0,
+                "previous_period": 0,
+                "historical_average": 0,
+                "target": 80
+            }
+    
     def generate_report(self, 
                        results: List[Dict[str, Any]], 
                        output_file: str,
                        title: str = "Chatbot Validation Report",
                        show_details: bool = True,
-                       scenario: Dict[str, Any] = None) -> str:
+                       scenario: Dict[str, Any] = None,
+                       save_to_history: bool = True) -> str:
         """
         Generates complete HTML report.
         
@@ -156,6 +222,7 @@ class HTMLReporter:
             title: Report title
             show_details: Include details per candidate
             scenario: Optional scenario data for extracting expected values
+            save_to_history: Whether to save execution data to history
         
         Returns:
             str: Path of generated file
@@ -165,6 +232,10 @@ class HTMLReporter:
         
         # Calculate metrics
         metrics = self._calculate_metrics(normalized_results)
+        
+        # Save to history if requested
+        if save_to_history:
+            self._save_execution_to_history(normalized_results, metrics, scenario)
         
         # Generate HTML
         html_content = self._generate_html_content(
@@ -255,10 +326,11 @@ class HTMLReporter:
         // Inicializar variables globales para los gráficos
         window.chartInstances = {{
             weeklyTrend: null,
-            comparison: null,
-            responseTime: null,
-            facts: null
+            similarityTrend: null,
+            factRetention: null
         }};
+        
+        {self._get_sorting_javascript()}
         
         {self._get_charts_javascript(results, metrics)}
     </script>
@@ -272,7 +344,7 @@ class HTMLReporter:
         if not results:
             return ""
         
-        return f"""<section class="charts-section">
+        return """<section class="charts-section">
     <h2>Analytics Dashboard</h2>
     <div class="charts-grid">
         <div class="chart-container">
@@ -283,40 +355,22 @@ class HTMLReporter:
             <h3>Performance by Category</h3>
             <canvas id="categoryChart" width="400" height="200"></canvas>
         </div>
-        <div class="chart-container">
-            <h3>Response Time Analysis</h3>
-            <canvas id="responseTimeChart" width="400" height="200"></canvas>
+        <div class="chart-container chart-wide">
+            <h3>Performance Trend</h3>
+            <div class="target-control">
+                <label for="targetInput">Target (%):</label>
+                <input type="number" id="targetInput" value="80" min="0" max="100" step="1" 
+                       onchange="updateTarget(this.value)">
+            </div>
+            <canvas id="weeklyTrendChart" width="800" height="200"></canvas>
         </div>
         <div class="chart-container">
-            <h3>Facts Retention Analysis</h3>
-            <canvas id="factsChart" width="400" height="200"></canvas>
+            <h3>Similarity Score Trend</h3>
+            <canvas id="similarityTrendChart" width="400" height="200"></canvas>
         </div>
         <div class="chart-container">
-            <h3>Weekly Performance Trend</h3>
-            <canvas id="weeklyTrendChart" width="400" height="200"></canvas>
-        </div>
-        <div class="chart-container">
-            <h3>Performance Comparison</h3>
-            <canvas id="comparisonChart" width="400" height="200"></canvas>
-        </div>
-    </div>
-    <div class="temporal-controls">
-        <h3>Temporal Analysis Controls</h3>
-        <div class="control-group">
-            <label for="periodSelect">Analysis Period:</label>
-            <select id="periodSelect" onchange="updateTemporalAnalysis()">
-                <option value="daily">Daily</option>
-                <option value="weekly" selected>Weekly</option>
-                <option value="monthly">Monthly</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label for="baselineSelect">Baseline Comparison:</label>
-            <select id="baselineSelect" onchange="updateComparison()">
-                <option value="previous">Previous Period</option>
-                <option value="average">Historical Average</option>
-                <option value="target">Target (80%)</option>
-            </select>
+            <h3>Fact Retention Trend</h3>
+            <canvas id="factRetentionChart" width="400" height="200"></canvas>
         </div>
     </div>
 </section>"""
@@ -327,7 +381,9 @@ class HTMLReporter:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
+        <!-- Chart.js CDN -->
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <!-- PDF Generation Libraries -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -381,14 +437,24 @@ class HTMLReporter:
         table_header = """<div class="results-section">
     <h2>Detailed Results</h2>
     <div class="table-container">
-        <table class="results-table">
+        <table class="results-table" id="resultsTable">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Score</th>
-                    <th>Status</th>
-                    <th>Facts Retained</th>
-                    <th>Date</th>
+                    <th onclick="sortTable(0)" class="sortable">
+                        ID <span class="sort-indicator">↕</span>
+                    </th>
+                    <th onclick="sortTable(1)" class="sortable">
+                        Score <span class="sort-indicator">↕</span>
+                    </th>
+                    <th onclick="sortTable(2)" class="sortable">
+                        Status <span class="sort-indicator">↕</span>
+                    </th>
+                    <th onclick="sortTable(3)" class="sortable">
+                        Facts Retained <span class="sort-indicator">↕</span>
+                    </th>
+                    <th onclick="sortTable(4)" class="sortable">
+                        Date <span class="sort-indicator">↕</span>
+                    </th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -644,6 +710,131 @@ class HTMLReporter:
         
         return '\n'.join(details)
     
+    def _get_sorting_javascript(self) -> str:
+        """Genera el JavaScript para el sorting de la tabla."""
+        return """
+        // Función para ordenar la tabla
+        function sortTable(columnIndex) {
+            console.log('sortTable called with columnIndex:', columnIndex);
+            
+            const table = document.getElementById('resultsTable');
+            if (!table) {
+                console.error('Table with id resultsTable not found');
+                return;
+            }
+            
+            const tbody = table.querySelector('tbody');
+            if (!tbody) {
+                console.error('Table tbody not found');
+                return;
+            }
+            
+            const allRows = Array.from(tbody.querySelectorAll('tr'));
+            const headers = table.querySelectorAll('th');
+            
+            console.log('Found', allRows.length, 'total rows and', headers.length, 'headers');
+            
+            // Filtrar solo las filas que tienen el número correcto de celdas (6 celdas = fila principal)
+            const rows = allRows.filter(row => row.cells && row.cells.length >= 6);
+            
+            console.log('Filtered to', rows.length, 'sortable rows (with 6+ cells)');
+            
+            if (rows.length === 0) {
+                console.error('No sortable rows found in table');
+                return;
+            }
+            
+            // Determinar el orden de sorting
+            let sortOrder = 'asc';
+            const currentHeader = headers[columnIndex];
+            
+            console.log('Current header classes:', currentHeader.classList.toString());
+            
+            // Si ya está ordenado por esta columna, cambiar el orden
+            if (currentHeader.classList.contains('sort-asc')) {
+                sortOrder = 'desc';
+                currentHeader.classList.remove('sort-asc');
+                currentHeader.classList.add('sort-desc');
+            } else if (currentHeader.classList.contains('sort-desc')) {
+                sortOrder = 'asc';
+                currentHeader.classList.remove('sort-desc');
+                currentHeader.classList.add('sort-asc');
+            } else {
+                // Limpiar clases de sorting de todos los headers
+                headers.forEach(header => {
+                    header.classList.remove('sort-asc', 'sort-desc');
+                });
+                sortOrder = 'asc';
+                currentHeader.classList.add('sort-asc');
+            }
+            
+            console.log('Sorting in', sortOrder, 'order');
+            
+            // Ordenar las filas
+            console.log('Starting sort with', rows.length, 'rows');
+            rows.sort((a, b) => {
+                const aValue = a.cells[columnIndex].textContent.trim();
+                const bValue = b.cells[columnIndex].textContent.trim();
+                
+                console.log('Comparing:', aValue, 'vs', bValue);
+                
+                // Manejar diferentes tipos de datos
+                let comparison = 0;
+                
+                if (columnIndex === 0) { // ID - numérico
+                    comparison = parseInt(aValue) - parseInt(bValue);
+                } else if (columnIndex === 1) { // Score - numérico
+                    comparison = parseFloat(aValue) - parseFloat(bValue);
+                } else if (columnIndex === 3) { // Facts Retained - formato "X/Y"
+                    const aMatch = aValue.match(/(\\d+)\\/(\\d+)/);
+                    const bMatch = bValue.match(/(\\d+)\\/(\\d+)/);
+                    if (aMatch && bMatch) {
+                        const aRatio = parseInt(aMatch[1]) / parseInt(aMatch[2]);
+                        const bRatio = parseInt(bMatch[1]) / parseInt(bMatch[2]);
+                        comparison = aRatio - bRatio;
+                    } else {
+                        comparison = aValue.localeCompare(bValue);
+                    }
+                } else { // Texto - alfabético
+                    comparison = aValue.localeCompare(bValue);
+                }
+                
+                console.log('Comparison result:', comparison, 'sortOrder:', sortOrder);
+                return sortOrder === 'asc' ? comparison : -comparison;
+            });
+            console.log('Sort completed');
+            
+            // Log del orden después del sorting
+            console.log('Order after sorting:');
+            rows.forEach((row, index) => {
+                const cellValue = row.cells[columnIndex] ? row.cells[columnIndex].textContent.trim() : 'N/A';
+                console.log('Sorted row', index, ':', cellValue);
+            });
+            
+            // Reorganizar las filas en el DOM
+            console.log('Reorganizing rows in DOM...');
+            rows.forEach((row, index) => {
+                console.log('Moving row', index, 'to position', index);
+                tbody.appendChild(row);
+            });
+            
+            // Verificar que el sorting funcionó
+            console.log('Final row order:');
+            const finalRows = Array.from(tbody.querySelectorAll('tr'));
+            finalRows.forEach((row, index) => {
+                const cellValue = row.cells[columnIndex] ? row.cells[columnIndex].textContent.trim() : 'N/A';
+                console.log('Row', index, ':', cellValue);
+            });
+            
+            console.log('Table sorted by column', columnIndex, 'in', sortOrder, 'order');
+        }
+        
+        // Asegurar que el DOM esté cargado
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, sorting functions ready');
+        });
+        """
+
     def _get_charts_javascript(self, results: List[Dict[str, Any]], metrics: Dict[str, Any]) -> str:
         """Generates JavaScript for interactive charts."""
         if not results:
@@ -653,11 +844,10 @@ class HTMLReporter:
         scores = [r.get('retention_score', 0.0) for r in results]
         passed_count = metrics['passed']
         failed_count = metrics['failed']
-        score_distribution = metrics['score_distribution']
         
-        # Data for trend chart (simulated by index)
-        trend_labels = [f"Test {i+1}" for i in range(len(results))]
-        trend_data = scores
+        # Get real temporal and comparison data
+        temporal_data = self._get_temporal_data()
+        comparison_data = self._get_comparison_data()
         
         # Data for facts analysis
         facts_data = []
@@ -671,6 +861,10 @@ class HTMLReporter:
             facts_labels.append(test_name[:20] + "..." if len(test_name) > 20 else test_name)
         
         return f"""
+        // Real data for charts
+        const temporalData = {json.dumps(temporal_data)};
+        const comparisonData = {json.dumps(comparison_data)};
+        
         // Gráfico de distribución de éxito
         const successRateCtx = document.getElementById('successRateChart').getContext('2d');
         new Chart(successRateCtx, {{
@@ -732,64 +926,29 @@ class HTMLReporter:
             }}
         }});
         
-        // Gráfico de análisis de tiempo de respuesta
-        const responseTimeCtx = document.getElementById('responseTimeChart').getContext('2d');
+        // Gráfico de análisis de retención de facts
+        const factRetentionCtx = document.getElementById('factRetentionChart').getContext('2d');
         
-        // Generar datos de tiempo de respuesta directamente
-        const responseTimeData = {{
-            labels: ['Test 1', 'Test 2', 'Test 3', 'Test 4', 'Test 5', 'Test 6', 'Test 7', 'Test 8'],
-            values: [150, 200, 120, 300, 180, 250, 160, 220]
-        }};
+        // Use real temporal data for fact retention scores
+        const factRetentionData = temporalData.fact_retention_scores || [];
+        const factRetentionLabels = temporalData.labels || [];
         
-        window.chartInstances.responseTime = new Chart(responseTimeCtx, {{
-            type: 'bar',
+        window.chartInstances.factRetention = new Chart(factRetentionCtx, {{
+            type: 'line',
             data: {{
-                labels: responseTimeData.labels,
+                labels: factRetentionLabels.length > 0 ? factRetentionLabels : ['No Data'],
                 datasets: [{{
-                    label: 'Average Response Time (ms)',
-                    data: responseTimeData.values,
-                    backgroundColor: function(context) {{
-                        const value = context.parsed.y;
-                        if (value < 100) return '#28a745';
-                        if (value < 500) return '#ffc107';
-                        return '#dc3545';
-                    }},
-                    borderWidth: 1
-                }}]
-            }},
-            options: {{
-                responsive: true,
-                scales: {{
-                    y: {{
-                        beginAtZero: true,
-                        ticks: {{
-                            callback: function(value) {{
-                                return value + 'ms';
-                            }}
-                        }}
-                    }}
-                }},
-                plugins: {{
-                    title: {{
-                        display: true,
-                        text: 'Response Time Analysis'
-                    }}
-                }}
-            }}
-        }});
-        
-        // Gráfico de análisis de facts
-        const factsCtx = document.getElementById('factsChart').getContext('2d');
-        
-        window.chartInstances.facts = new Chart(factsCtx, {{
-            type: 'bar',
-            data: {{
-                labels: ['Test 1', 'Test 2', 'Test 3', 'Test 4', 'Test 5', 'Test 6', 'Test 7', 'Test 8'],
-                datasets: [{{
-                    label: 'Facts Retention %',
-                    data: [85, 90, 75, 95, 80, 88, 92, 87],
-                    backgroundColor: ['#28a745', '#28a745', '#ffc107', '#28a745', '#ffc107', '#28a745', '#28a745', '#28a745'],
-                    borderWidth: 1
+                    label: 'Fact Retention Rate',
+                    data: factRetentionData.length > 0 ? factRetentionData : [0],
+                    borderColor: '#17a2b8',
+                    backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#17a2b8',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5
                 }}]
             }},
             options: {{
@@ -800,7 +959,7 @@ class HTMLReporter:
                         max: 100,
                         ticks: {{
                             callback: function(value) {{
-                                return value + '%';
+                                return value.toFixed(0) + '%';
                             }}
                         }}
                     }}
@@ -808,30 +967,42 @@ class HTMLReporter:
                 plugins: {{
                     title: {{
                         display: true,
-                        text: 'Facts Retention by Test'
+                        text: 'Fact Retention Analysis'
+                    }},
+                    tooltip: {{
+                        callbacks: {{
+                            label: function(context) {{
+                                return 'Fact Retention: ' + context.parsed.y.toFixed(1) + '%';
+                            }}
+                        }}
                     }}
                 }}
             }}
         }});
         
+        
         // Gráfico de tendencia semanal
         const weeklyTrendCtx = document.getElementById('weeklyTrendChart').getContext('2d');
+        
+        // Use real temporal data
+        let currentTarget = 80;
+        const targetData = temporalData.labels.map(() => currentTarget);
         
         window.chartInstances.weeklyTrend = new Chart(weeklyTrendCtx, {{
             type: 'line',
             data: {{
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
+                labels: temporalData.labels.length > 0 ? temporalData.labels : ['No Data'],
                 datasets: [{{
-                    label: 'Average Score',
-                    data: [78, 85, 92, 88, 90, 87, 89, 91],
+                    label: 'Pass Rate %',
+                    data: temporalData.scores.length > 0 ? temporalData.scores : [0],
                     borderColor: '#28a745',
                     backgroundColor: 'rgba(40, 167, 69, 0.1)',
                     borderWidth: 3,
                     fill: true,
                     tension: 0.4
                 }}, {{
-                    label: 'Target (80%)',
-                    data: [80, 80, 80, 80, 80, 80, 80, 80],
+                    label: 'Target',
+                    data: temporalData.labels.length > 0 ? targetData : [currentTarget],
                     borderColor: '#dc3545',
                     backgroundColor: 'rgba(220, 53, 69, 0.1)',
                     borderWidth: 2,
@@ -844,10 +1015,10 @@ class HTMLReporter:
                 scales: {{
                     y: {{
                         beginAtZero: true,
-                        max: 1.0,
+                        max: 100,
                         ticks: {{
                             callback: function(value) {{
-                                return (value * 100).toFixed(0) + '%';
+                                return value.toFixed(0) + '%';
                             }}
                         }}
                     }}
@@ -855,24 +1026,58 @@ class HTMLReporter:
                 plugins: {{
                     title: {{
                         display: true,
-                        text: 'Weekly Performance vs Target'
+                        text: 'Performance vs Target'
+                    }},
+                    tooltip: {{
+                        callbacks: {{
+                            label: function(context) {{
+                                if (context.datasetIndex === 0) {{
+                                    return 'Pass Rate: ' + context.parsed.y.toFixed(1) + '%';
+                                }} else {{
+                                    return 'Target: ' + context.parsed.y.toFixed(0) + '%';
+                                }}
+                            }}
+                        }}
                     }}
                 }}
             }}
         }});
         
-        // Gráfico de comparación
-        const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+        // Función para actualizar el target dinámicamente
+        function updateTarget(newTarget) {{
+            currentTarget = parseFloat(newTarget);
+            if (window.chartInstances.weeklyTrend) {{
+                const labels = window.chartInstances.weeklyTrend.data.labels;
+                const newTargetData = labels.map(() => currentTarget);
+                window.chartInstances.weeklyTrend.data.datasets[1].data = newTargetData;
+                window.chartInstances.weeklyTrend.data.datasets[1].label = 'Target (' + currentTarget + '%)';
+                window.chartInstances.weeklyTrend.update();
+            }}
+        }}
         
-        window.chartInstances.comparison = new Chart(comparisonCtx, {{
-            type: 'bar',
+        // Gráfico de tendencia de similarity scores
+        const similarityTrendCtx = document.getElementById('similarityTrendChart').getContext('2d');
+        
+        // Use real temporal data for similarity scores
+        const similarityData = temporalData.similarity_scores || [];
+        const similarityLabels = temporalData.labels || [];
+        
+        window.chartInstances.similarityTrend = new Chart(similarityTrendCtx, {{
+            type: 'line',
             data: {{
-                labels: ['Current Period', 'Previous Period', 'Historical Average', 'Target (80%)'],
+                labels: similarityLabels.length > 0 ? similarityLabels : ['No Data'],
                 datasets: [{{
-                    label: 'Performance Score',
-                    data: [0.87, 0.82, 0.84, 0.80],
-                    backgroundColor: ['#007bff', '#6c757d', '#17a2b8', '#dc3545'],
-                    borderWidth: 1
+                    label: 'Average Similarity Score',
+                    data: similarityData.length > 0 ? similarityData : [0],
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#28a745',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5
                 }}]
             }},
             options: {{
@@ -880,10 +1085,10 @@ class HTMLReporter:
                 scales: {{
                     y: {{
                         beginAtZero: true,
-                        max: 1.0,
+                        max: 100,
                         ticks: {{
                             callback: function(value) {{
-                                return (value * 100).toFixed(0) + '%';
+                                return value.toFixed(0) + '%';
                             }}
                         }}
                     }}
@@ -891,7 +1096,14 @@ class HTMLReporter:
                 plugins: {{
                     title: {{
                         display: true,
-                        text: 'Performance Comparison'
+                        text: 'Similarity Score Trend'
+                    }},
+                    tooltip: {{
+                        callbacks: {{
+                            label: function(context) {{
+                                return 'Similarity: ' + context.parsed.y.toFixed(1) + '%';
+                            }}
+                        }}
                     }}
                 }}
             }}
@@ -909,45 +1121,7 @@ class HTMLReporter:
             }}
         }}
         
-        // Funciones para análisis temporal
-        window.updateTemporalAnalysis = function() {{
-            const period = document.getElementById('periodSelect').value;
-            console.log('Updating temporal analysis for period:', period);
-            
-            // Actualizar gráfico de tendencia semanal
-            if (window.chartInstances.weeklyTrend) {{
-                const newData = generateTemporalData(period);
-                window.chartInstances.weeklyTrend.data.labels = newData.labels;
-                window.chartInstances.weeklyTrend.data.datasets[0].data = newData.scores;
-                window.chartInstances.weeklyTrend.data.datasets[1].data = newData.targets;
-                window.chartInstances.weeklyTrend.update();
-            }}
-            
-            // Actualizar gráfico de tiempo de respuesta
-            if (window.chartInstances.responseTime) {{
-                const newData = generateResponseTimeData(period);
-                window.chartInstances.responseTime.data.labels = newData.labels;
-                window.chartInstances.responseTime.data.datasets[0].data = newData.values;
-                window.chartInstances.responseTime.update();
-            }}
-            
-            showNotification(`Updated analysis to ${{period}} view`, 'success');
-        }};
         
-        window.updateComparison = function() {{
-            const baseline = document.getElementById('baselineSelect').value;
-            console.log('Updating comparison baseline:', baseline);
-            
-            // Actualizar gráfico de comparación
-            if (window.chartInstances.comparison) {{
-                const newData = generateComparisonData(baseline);
-                window.chartInstances.comparison.data.datasets[0].data = newData.values;
-                window.chartInstances.comparison.data.labels = newData.labels;
-                window.chartInstances.comparison.update();
-            }}
-            
-            showNotification(`Updated comparison baseline to ${{baseline}}`, 'success');
-        }};
         
         // Función auxiliar para generar datos semanales
         function generateWeeklyTrendData(data) {{
@@ -976,46 +1150,31 @@ class HTMLReporter:
             }};
         }}
         
-        // Función para generar datos temporales según el período
+        // Función para generar datos temporales según el período usando datos reales
         function generateTemporalData(period) {{
-            const now = new Date();
-            let labels = [];
-            let scores = [];
-            let targets = [];
+            // Use the real temporal data that was passed from Python
+            const realData = temporalData;
+            const currentTarget = parseFloat(document.getElementById('targetInput').value) || 80;
             
-            switch(period) {{
-                case 'daily':
-                    // Últimos 14 días
-                    for (let i = 13; i >= 0; i--) {{
-                        const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
-                        labels.push(date.toLocaleDateString('en-US', {{ month: 'short', day: 'numeric' }}));
-                        scores.push(0.75 + Math.random() * 0.25); // Simular variación diaria
-                        targets.push(0.8);
-                    }}
-                    break;
-                    
-                case 'weekly':
-                    // Últimas 8 semanas
-                    for (let i = 7; i >= 0; i--) {{
-                        const weekStart = new Date(now.getTime() - (i * 7 * 24 * 60 * 60 * 1000));
-                        labels.push(weekStart.toLocaleDateString('en-US', {{ month: 'short', day: 'numeric' }}));
-                        scores.push(0.78 + Math.random() * 0.22); // Simular variación semanal
-                        targets.push(0.8);
-                    }}
-                    break;
-                    
-                case 'monthly':
-                    // Últimos 6 meses
-                    for (let i = 5; i >= 0; i--) {{
-                        const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                        labels.push(monthStart.toLocaleDateString('en-US', {{ month: 'short', year: '2-digit' }}));
-                        scores.push(0.80 + Math.random() * 0.20); // Simular variación mensual
-                        targets.push(0.8);
-                    }}
-                    break;
+            // If we have real data, use it
+            if (realData && realData.labels && realData.labels.length > 0) {{
+                const labels = realData.labels;
+                const scores = realData.scores;
+                const targets = labels.map(() => currentTarget);
+                const similarity_scores = realData.similarity_scores || [];
+                const fact_retention_scores = realData.fact_retention_scores || [];
+                
+                return {{ labels, scores, targets, similarity_scores, fact_retention_scores }};
             }}
             
-            return {{ labels, scores, targets }};
+            // Fallback: return empty data if no real data available
+            return {{ 
+                labels: ['No Data'], 
+                scores: [0], 
+                targets: [currentTarget],
+                similarity_scores: [0],
+                fact_retention_scores: [0]
+            }};
         }}
         
         // Función para generar datos de tendencia
@@ -1286,6 +1445,44 @@ class HTMLReporter:
             border-bottom: 2px solid #dee2e6;
         }
         
+        .results-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+        
+        .results-table th.sortable:hover {
+            background-color: #e9ecef;
+        }
+        
+        .sort-indicator {
+            margin-left: 8px;
+            font-size: 12px;
+            color: #6c757d;
+            transition: color 0.2s ease;
+        }
+        
+        .results-table th.sortable:hover .sort-indicator {
+            color: #007bff;
+        }
+        
+        .results-table th.sort-asc .sort-indicator {
+            color: #007bff;
+        }
+        
+        .results-table th.sort-asc .sort-indicator::after {
+            content: " ↑";
+        }
+        
+        .results-table th.sort-desc .sort-indicator {
+            color: #007bff;
+        }
+        
+        .results-table th.sort-desc .sort-indicator::after {
+            content: " ↓";
+        }
+        
         .results-table td {
             padding: 15px;
             border-bottom: 1px solid #dee2e6;
@@ -1473,6 +1670,10 @@ class HTMLReporter:
             border: 1px solid #dee2e6;
         }
         
+        .chart-container.chart-wide {
+            grid-column: span 2;
+        }
+        
         .chart-container h3 {
             margin-bottom: 15px;
             color: #495057;
@@ -1485,47 +1686,32 @@ class HTMLReporter:
             height: auto;
         }
         
-        .temporal-controls {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
-            border: 1px solid #dee2e6;
-        }
-        
-        .temporal-controls h3 {
+        .target-control {
             margin-bottom: 15px;
-            color: #495057;
             text-align: center;
         }
         
-        .control-group {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            gap: 10px;
-        }
-        
-        .control-group label {
+        .target-control label {
             font-weight: bold;
-            min-width: 150px;
             color: #495057;
+            margin-right: 10px;
         }
         
-        .control-group select {
-            padding: 8px 12px;
+        .target-control input {
+            width: 80px;
+            padding: 5px 8px;
             border: 1px solid #ced4da;
             border-radius: 4px;
-            background: white;
-            font-size: 14px;
-            min-width: 150px;
+            text-align: center;
+            font-size: 0.9rem;
         }
         
-        .control-group select:focus {
+        .target-control input:focus {
             outline: none;
             border-color: #007bff;
             box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
         }
+        
         
         @keyframes slideIn {
             from {
@@ -1580,3 +1766,259 @@ class HTMLReporter:
             }
         }
         """
+
+
+class ResultsHistory:
+    """
+    Manages historical validation results for temporal analysis.
+    
+    Stores execution data in JSON format for generating real performance metrics.
+    """
+    
+    def __init__(self, history_file="validation_history.json", retention_days=30):
+        """
+        Initialize results history manager.
+        
+        Args:
+            history_file: Name of the history file
+            retention_days: Number of days to retain historical data
+        """
+        self.history_dir = Path("true_lies_reporting")
+        self.history_dir.mkdir(exist_ok=True)
+        
+        self.history_file = self.history_dir / history_file
+        self.retention_days = retention_days
+        self.history_data = self._load_history()
+    
+    def _load_history(self) -> Dict[str, Any]:
+        """Load historical data from JSON file."""
+        if self.history_file.exists():
+            try:
+                with open(self.history_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError):
+                # If file is corrupted, start fresh
+                return {"executions": []}
+        return {"executions": []}
+    
+    def _save_history(self):
+        """Save historical data to JSON file."""
+        try:
+            with open(self.history_file, 'w', encoding='utf-8') as f:
+                json.dump(self.history_data, f, indent=2, ensure_ascii=False)
+        except IOError as e:
+            print(f"Warning: Could not save history: {e}")
+    
+    def _cleanup_old_data(self):
+        """Remove executions older than retention period."""
+        cutoff_date = datetime.now() - timedelta(days=self.retention_days)
+        cutoff_iso = cutoff_date.isoformat()
+        
+        original_count = len(self.history_data["executions"])
+        self.history_data["executions"] = [
+            exec_data for exec_data in self.history_data["executions"]
+            if exec_data["timestamp"] >= cutoff_iso
+        ]
+        
+        removed_count = original_count - len(self.history_data["executions"])
+        if removed_count > 0:
+            print(f"Cleaned up {removed_count} old execution records")
+    
+    def save_execution(self, execution_data: Dict[str, Any]):
+        """
+        Save a new execution to history.
+        
+        Args:
+            execution_data: Dictionary containing execution metrics
+        """
+        # Add timestamp if not present
+        if "timestamp" not in execution_data:
+            execution_data["timestamp"] = datetime.now().isoformat()
+        
+        # Add to history
+        self.history_data["executions"].append(execution_data)
+        
+        # Cleanup old data
+        self._cleanup_old_data()
+        
+        # Save to file
+        self._save_history()
+    
+    def _get_most_recent_per_day(self, executions: List[Dict]) -> List[Dict]:
+        """Get only the most recent execution for each day."""
+        from collections import defaultdict
+        
+        # Group by day
+        daily_executions = defaultdict(list)
+        for exec_data in executions:
+            exec_date = datetime.fromisoformat(exec_data["timestamp"])
+            day_key = exec_date.strftime("%Y-%m-%d")
+            daily_executions[day_key].append(exec_data)
+        
+        # Keep only the most recent execution per day
+        most_recent_executions = []
+        for day_executions in daily_executions.values():
+            # Sort by timestamp and take the most recent
+            day_executions.sort(key=lambda x: x["timestamp"])
+            most_recent_executions.append(day_executions[-1])
+        
+        # Sort all executions by timestamp
+        most_recent_executions.sort(key=lambda x: x["timestamp"])
+        return most_recent_executions
+    
+    def get_temporal_data(self, period: str, periods_back: int = 4) -> Dict[str, Any]:
+        """
+        Get aggregated temporal data for performance trends.
+        
+        Args:
+            period: 'daily', 'weekly', or 'monthly'
+            periods_back: Number of periods to look back
+            
+        Returns:
+            Dictionary with labels, scores, and counts
+        """
+        executions = self.history_data["executions"]
+        if not executions:
+            return {"labels": [], "scores": [], "counts": []}
+        
+        # Always keep only the most recent execution per day for all periods
+        # This ensures consistent data regardless of period (daily, weekly, monthly)
+        executions = self._get_most_recent_per_day(executions)
+        
+        # Group executions by period
+        grouped_data = self._group_by_period(executions, period)
+        
+        # Get last N periods
+        periods = sorted(grouped_data.keys())[-periods_back:]
+        
+        labels = []
+        scores = []
+        counts = []
+        similarity_scores = []
+        fact_retention_scores = []
+        
+        for period_key in periods:
+            period_executions = grouped_data[period_key]
+            
+            # Since we filtered to most recent per day, we should have only one execution
+            if len(period_executions) == 1:
+                execution = period_executions[0]
+                pass_rate = execution["pass_rate"]
+                total_tests = execution["total_candidates"]
+                avg_similarity = execution.get("avg_similarity_score", 0.0)
+                fact_retention = execution.get("avg_factual_accuracy", 0.0)
+            else:
+                # Fallback: take the most recent if somehow we have multiple
+                period_executions.sort(key=lambda x: x["timestamp"])
+                execution = period_executions[-1]
+                pass_rate = execution["pass_rate"]
+                total_tests = execution["total_candidates"]
+                avg_similarity = execution.get("avg_similarity_score", 0.0)
+                fact_retention = execution.get("avg_factual_accuracy", 0.0)
+            
+            labels.append(self._format_period_label(period_key, period))
+            scores.append(round(pass_rate, 1))
+            counts.append(total_tests)
+            similarity_scores.append(round(avg_similarity * 100, 1))  # Convert to percentage
+            fact_retention_scores.append(round(fact_retention, 1))  # Already in percentage
+        
+        return {
+            "labels": labels,
+            "scores": scores,
+            "counts": counts,
+            "similarity_scores": similarity_scores,
+            "fact_retention_scores": fact_retention_scores
+        }
+    
+    def get_comparison_data(self) -> Dict[str, Any]:
+        """
+        Get data for performance comparison (current vs previous vs historical).
+        
+        Returns:
+            Dictionary with comparison metrics
+        """
+        executions = self.history_data["executions"]
+        if not executions:
+            return {
+                "current_period": 0,
+                "previous_period": 0,
+                "historical_average": 0,
+                "target": 80
+            }
+        
+        # Sort by timestamp
+        executions.sort(key=lambda x: x["timestamp"])
+        
+        # Calculate current period (last 7 days)
+        current_cutoff = datetime.now() - timedelta(days=7)
+        current_executions = [
+            exec_data for exec_data in executions
+            if datetime.fromisoformat(exec_data["timestamp"]) >= current_cutoff
+        ]
+        
+        # Calculate previous period (7-14 days ago)
+        previous_start = datetime.now() - timedelta(days=14)
+        previous_end = datetime.now() - timedelta(days=7)
+        previous_executions = [
+            exec_data for exec_data in executions
+            if previous_start <= datetime.fromisoformat(exec_data["timestamp"]) < previous_end
+        ]
+        
+        # Calculate metrics
+        current_rate = self._calculate_pass_rate(current_executions)
+        previous_rate = self._calculate_pass_rate(previous_executions)
+        historical_rate = self._calculate_pass_rate(executions)
+        
+        return {
+            "current_period": round(current_rate, 1),
+            "previous_period": round(previous_rate, 1),
+            "historical_average": round(historical_rate, 1),
+            "target": 80
+        }
+    
+    def _group_by_period(self, executions: List[Dict], period: str) -> Dict[str, List[Dict]]:
+        """Group executions by time period."""
+        grouped = {}
+        
+        for exec_data in executions:
+            exec_date = datetime.fromisoformat(exec_data["timestamp"])
+            
+            if period == "daily":
+                period_key = exec_date.strftime("%Y-%m-%d")
+            elif period == "weekly":
+                # Get Monday of the week
+                monday = exec_date - timedelta(days=exec_date.weekday())
+                period_key = monday.strftime("%Y-%m-%d")
+            elif period == "monthly":
+                period_key = exec_date.strftime("%Y-%m")
+            else:
+                continue
+            
+            if period_key not in grouped:
+                grouped[period_key] = []
+            grouped[period_key].append(exec_data)
+        
+        return grouped
+    
+    def _format_period_label(self, period_key: str, period: str) -> str:
+        """Format period key for display."""
+        if period == "daily":
+            date_obj = datetime.strptime(period_key, "%Y-%m-%d")
+            return date_obj.strftime("%m/%d")
+        elif period == "weekly":
+            date_obj = datetime.strptime(period_key, "%Y-%m-%d")
+            return f"Week {date_obj.strftime('%m/%d')}"
+        elif period == "monthly":
+            date_obj = datetime.strptime(period_key, "%Y-%m")
+            return date_obj.strftime("%b %Y")
+        return period_key
+    
+    def _calculate_pass_rate(self, executions: List[Dict]) -> float:
+        """Calculate average pass rate from executions."""
+        if not executions:
+            return 0.0
+        
+        total_tests = sum(exec_data["total_candidates"] for exec_data in executions)
+        total_passed = sum(exec_data["passed"] for exec_data in executions)
+        
+        return (total_passed / total_tests * 100) if total_tests > 0 else 0.0

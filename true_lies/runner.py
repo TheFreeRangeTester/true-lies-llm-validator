@@ -117,7 +117,8 @@ def validate_llm_candidates(scenario, candidates, threshold=0.65, generate_html_
             results=results,
             output_file=html_output_file,
             title=html_title,
-            scenario=scenario
+            scenario=scenario,
+            save_to_history=True
         )
         
         print(f"\n📊 HTML REPORT GENERATED:")
