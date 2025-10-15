@@ -18,7 +18,53 @@ python -c "from true_lies import ConversationValidator, HTMLReporter; print('✅
 
 ## ⚡ Get Started in 2 Minutes
 
-### 1. Basic Validation (1 minute)
+True Lies supports **two types of validation**:
+
+1. **Candidate Validation** - Validate LLM responses against expected facts and semantic reference
+2. **Multi-turn Conversation Validation** - Test if LLMs remember context across conversation turns
+
+### Type 1: Candidate Validation (Most Common)
+
+This is the most basic and common way to use True Lies - validate multiple LLM responses against a scenario:
+
+```python
+from true_lies import validate_llm_candidates, create_scenario
+
+# Define your test scenario
+scenario = create_scenario(
+    facts={
+        "patient_name": {"expected": "John Smith", "extractor": "regex", "pattern": r"(?:patient|name):\s*([A-Z][a-z]+\s+[A-Z][a-z]+)"},
+        "appointment_date": {"expected": "March 15, 2024", "extractor": "regex", "pattern": r"(\w+\s+\d{1,2},\s+\d{4})"},
+        "doctor": {"expected": "Dr. Johnson", "extractor": "regex", "pattern": r"(Dr\.\s+\w+)"}
+    },
+    semantic_reference="Patient John Smith has an appointment with Dr. Johnson on March 15, 2024"
+)
+
+# Test multiple LLM responses
+candidates = [
+    "John Smith's appointment with Dr. Johnson is scheduled for March 15, 2024",
+    "Patient: John Smith. Doctor: Dr. Johnson. Date: March 15, 2024",
+    "Appointment for John Smith on March 15, 2024 with Dr. Johnson"
+]
+
+# Validate all candidates and generate HTML report
+result = validate_llm_candidates(
+    scenario=scenario,
+    candidates=candidates,
+    threshold=0.65,
+    generate_html_report=True,
+    html_title="Appointment Booking Validation"
+)
+
+print(f"📊 Report: {result['html_report_path']}")
+print(f"✅ Passed: {result['summary']['passed_count']}/{result['summary']['total_count']}")
+```
+
+**💡 Best Practice:** Keep your facts and candidates in separate files (JSON/YAML) for better organization. See our [live demo](https://github.com/TheFreeRangeTester/demo_truelies) for examples.
+
+### Type 2: Multi-turn Conversation Validation
+
+Test if your LLM remembers context across multiple conversation turns:
 
 ```python
 from true_lies import ConversationValidator
@@ -26,70 +72,94 @@ from true_lies import ConversationValidator
 # Create validator
 conv = ConversationValidator()
 
-# Add conversation with automatic reporting
+# Turn 1: User reports problem
 conv.add_turn_and_report(
-    user_input="Hello, I'm John, my email is john@company.com",
-    bot_response="Hello John! I'll help you with your inquiry.",
-    expected_facts={'name': 'John', 'email': 'john@company.com'},
-    title="Turn 1: User identifies themselves"
+    user_input="My app doesn't work, I'm user ID 12345",
+    bot_response="Hello, I'll help you. What error do you see?",
+    expected_facts={'user_id': '12345', 'issue_type': 'app_not_working'},
+    title="Turn 1: User reports problem"
 )
 
-# Validate if the bot remembers the context
-final_response = "John, your inquiry about john@company.com is resolved"
+# Turn 2: User provides details
+conv.add_turn_and_report(
+    user_input="Error 500 on login, email john@company.com",
+    bot_response="I understand, error 500 on login. Checking your account.",
+    expected_facts={'error_code': '500', 'email': 'john@company.com'},
+    title="Turn 2: User provides details"
+)
+
+# Test: Does the bot remember everything from previous turns?
+final_response = "John (ID 12345), your error 500 will be fixed in 2 hours"
 retention = conv.validate_and_report(
     response=final_response,
-    facts_to_check=['name', 'email'],
-    title="Retention Test"
+    facts_to_check=['user_id', 'error_code', 'email'],
+    title="Context Retention Test"
 )
 
-# Automatic result: ✅ PASS or ❌ FAIL
+print(f"📊 Retention Score: {retention['retention_score']:.2f}")
+print(f"✅ Facts Retained: {retention['facts_retained']}/{retention['total_facts']}")
 ```
 
-### 2. Complete Multi-turn Validation (2 minutes)
+### 📁 Best Practice: External Data Files
+
+For production use, keep your test data in separate files:
+
+**scenario.json:**
+
+```json
+{
+  "name": "Appointment Booking Test",
+  "semantic_reference": "Patient John Smith has an appointment with Dr. Johnson on March 15, 2024",
+  "facts": {
+    "patient_name": {
+      "expected": "John Smith",
+      "extractor": "regex",
+      "pattern": "(?:patient|name):\\s*([A-Z][a-z]+\\s+[A-Z][a-z]+)"
+    },
+    "appointment_date": {
+      "expected": "March 15, 2024",
+      "extractor": "regex",
+      "pattern": "(\\w+\\s+\\d{1,2},\\s+\\d{4})"
+    }
+  }
+}
+```
+
+**candidates.json:**
+
+```json
+[
+  "John Smith's appointment with Dr. Johnson is scheduled for March 15, 2024",
+  "Patient: John Smith. Date: March 15, 2024",
+  "Appointment for John Smith on March 15"
+]
+```
+
+**test_appointment.py:**
 
 ```python
-from true_lies import ConversationValidator
+import json
+from true_lies import validate_llm_candidates
 
-def test_support_chatbot():
-    """Complete support chatbot test"""
+# Load test data
+with open('scenario.json', 'r') as f:
+    scenario = json.load(f)
 
-    # Create validator
-    conv = ConversationValidator()
+with open('candidates.json', 'r') as f:
+    candidates = json.load(f)
 
-    # Turn 1: User reports problem
-    conv.add_turn_and_report(
-        user_input="My app doesn't work, I'm user ID 12345",
-        bot_response="Hello, I'll help you. What error do you see?",
-        expected_facts={'user_id': '12345', 'issue_type': 'app_not_working'},
-        title="Turn 1: User reports problem"
-    )
+# Run validation
+result = validate_llm_candidates(
+    scenario=scenario,
+    candidates=candidates,
+    threshold=0.65,
+    generate_html_report=True
+)
 
-    # Turn 2: User provides details
-    conv.add_turn_and_report(
-        user_input="Error 500 on login, email john@company.com",
-        bot_response="I understand, error 500 on login. Checking your account.",
-        expected_facts={'error_code': '500', 'email': 'john@company.com'},
-        title="Turn 2: User provides details"
-    )
-
-    # Show conversation summary
-    conv.print_conversation_summary("Conversation Summary")
-
-    # Final test: Does the bot remember everything?
-    final_response = "John (ID 12345), your error 500 will be fixed in 2 hours"
-    retention = conv.validate_and_report(
-        response=final_response,
-        facts_to_check=['user_id', 'error_code', 'email'],
-        title="Context Retention Test"
-    )
-
-    # Return result for automated tests
-    return retention['retention_score'] >= 0.8
-
-# Run test
-if __name__ == "__main__":
-    test_support_chatbot()
+print(f"✅ Passed: {result['summary']['passed_count']}/{result['summary']['total_count']}")
 ```
+
+**See it in action:** Check out our [live demo project](https://github.com/TheFreeRangeTester/demo_truelies) for a complete example with external data files.
 
 ## 🎯 Popular Use Cases
 
