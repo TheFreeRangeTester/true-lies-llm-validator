@@ -11,10 +11,10 @@ Validates if your LLM or chatbot is telling the truth, remembering context and m
 pip install true-lies-validator
 
 # Verify installation
-python -c "from true_lies import ConversationValidator, HTMLReporter; print('✅ Installed correctly')"
+python -c "from true_lies import ConversationValidator, HTMLReporter; print('✅ Installed successfully')"
 ```
 
-> **📦 Current version: 0.7.0** - With HTML Reporter, interactive dashboards, and advanced analytics
+> **📦 Current version: 0.8.0** - With interactive HTML reports, improved dashboards, and simplified CI/CD integration
 
 ## ⚡ Get Started in 2 Minutes
 
@@ -50,12 +50,12 @@ retention = conv.validate_and_report(
 ```python
 from true_lies import ConversationValidator
 
-def test_chatbot_support():
+def test_support_chatbot():
     """Complete support chatbot test"""
-    
+
     # Create validator
     conv = ConversationValidator()
-    
+
     # Turn 1: User reports problem
     conv.add_turn_and_report(
         user_input="My app doesn't work, I'm user ID 12345",
@@ -63,7 +63,7 @@ def test_chatbot_support():
         expected_facts={'user_id': '12345', 'issue_type': 'app_not_working'},
         title="Turn 1: User reports problem"
     )
-    
+
     # Turn 2: User provides details
     conv.add_turn_and_report(
         user_input="Error 500 on login, email john@company.com",
@@ -71,10 +71,10 @@ def test_chatbot_support():
         expected_facts={'error_code': '500', 'email': 'john@company.com'},
         title="Turn 2: User provides details"
     )
-    
+
     # Show conversation summary
     conv.print_conversation_summary("Conversation Summary")
-    
+
     # Final test: Does the bot remember everything?
     final_response = "John (ID 12345), your error 500 will be fixed in 2 hours"
     retention = conv.validate_and_report(
@@ -82,18 +82,19 @@ def test_chatbot_support():
         facts_to_check=['user_id', 'error_code', 'email'],
         title="Context Retention Test"
     )
-    
+
     # Return result for automated tests
     return retention['retention_score'] >= 0.8
 
 # Run test
 if __name__ == "__main__":
-    test_chatbot_support()
+    test_support_chatbot()
 ```
 
 ## 🎯 Popular Use Cases
 
 ### E-commerce
+
 ```python
 # Customer buying product
 conv.add_turn_and_report(
@@ -105,6 +106,7 @@ conv.add_turn_and_report(
 ```
 
 ### Banking
+
 ```python
 # Customer requesting loan
 conv.add_turn_and_report(
@@ -116,6 +118,7 @@ conv.add_turn_and_report(
 ```
 
 ### Technical Support
+
 ```python
 # User reports problem
 conv.add_turn_and_report(
@@ -129,6 +132,7 @@ conv.add_turn_and_report(
 ## 🔧 Main Methods
 
 ### `add_turn_and_report()` - Add turn with automatic reporting
+
 ```python
 conv.add_turn_and_report(
     user_input="...",
@@ -139,6 +143,7 @@ conv.add_turn_and_report(
 ```
 
 ### `validate_and_report()` - Validate retention with automatic reporting
+
 ```python
 retention = conv.validate_and_report(
     response="Bot response to validate",
@@ -148,6 +153,7 @@ retention = conv.validate_and_report(
 ```
 
 ### `print_conversation_summary()` - Conversation summary
+
 ```python
 conv.print_conversation_summary("Conversation Summary")
 ```
@@ -191,18 +197,18 @@ Generate professional HTML reports with interactive dashboards in just **one lin
 ### 🚀 Super Simple HTML Reports
 
 ```python
-from true_lies import validate_llm_candidates
+from true_lies import validate_llm_candidates, create_scenario
 
 # Define your test scenario
-scenario = {
-    "name": "Insurance Policy Test",
-    "semantic_reference": "Your auto insurance policy #POL-2024-001 has a premium of $850.00",
-    "facts": {
+scenario = create_scenario(
+    facts={
         "policy_number": {"expected": "POL-2024-001", "extractor": "regex", "pattern": r"#?(POL-\d{4}-\d{3})"},
         "premium_amount": {"expected": "850.00", "extractor": "money"},
-        "insurance_type": {"expected": "auto insurance", "extractor": "categorical", "patterns": {"auto insurance": ["auto insurance", "car insurance"]}}
-    }
-}
+        "insurance_type": {"expected": "auto insurance", "extractor": "categorical",
+                          "patterns": {"auto insurance": ["auto insurance", "car insurance", "vehicle insurance"]}}
+    },
+    semantic_reference="Your auto insurance policy #POL-2024-001 has a premium of $850.00"
+)
 
 # Test multiple candidates
 candidates = [
@@ -226,18 +232,21 @@ print(f"📊 Report saved to: {result['html_report_path']}")
 ### 🎨 Interactive Dashboard Features
 
 **📈 Real-time Analytics:**
+
 - **Success Rate Distribution** - Centered chart showing pass/fail distribution
 - **Performance Trend** - Historical performance with configurable target line
 - **Similarity Score Trend** - Semantic similarity tracking over time
 - **Fact Retention Trend** - Percentage of facts retained across tests
 
 **🔍 Interactive Table:**
+
 - **Sortable columns** - Click headers to sort by ID, Score, Status, etc.
 - **Expandable details** - Click "View Details" to see full test information
 - **Card-style details** - Professional styling with smooth transitions
 - **Real-time filtering** - Filter and search through results
 
 **📊 Historical Data:**
+
 - **Automatic data persistence** - Results saved to `true_lies_reporting/validation_history.json`
 - **Temporal analysis** - Track performance over days/weeks/months
 - **Target control** - Set and adjust performance targets dynamically
@@ -252,68 +261,128 @@ print(f"📊 Report saved to: {result['html_report_path']}")
 - ✅ **Expandable details** - Toggle detailed test information
 - ✅ **Responsive design** - Works on desktop and mobile
 - ✅ **Professional styling** - Ready for stakeholder presentations
-### 💡 Real-World Example: E-commerce Order Processing
+
+## 🚀 CI/CD Integration
+
+True Lies integrates seamlessly into CI/CD pipelines for automated LLM validation. Here's a complete example based on a [real project](https://github.com/TheFreeRangeTester/demo_truelies):
+
+### Complete Example with GitHub Actions
+
+**1. Project structure:**
+
+```
+your-project/
+├── .github/
+│   └── workflows/
+│       └── test-and-report.yml    # GitHub Actions workflow
+├── tests/
+│   └── test_chatbot.py            # Your tests with True Lies
+├── true_lies_reporting/           # Reports and history (auto-generated)
+└── requirements.txt               # Includes true-lies-validator
+```
+
+**2. Test file (`tests/test_chatbot.py`):**
 
 ```python
-from true_lies import validate_llm_candidates
+from true_lies import validate_llm_candidates, create_scenario
 
-# E-commerce order scenario
-scenario = {
-    "name": "Order Processing Test",
-    "semantic_reference": "Order #ORD-2024-789 for John Smith (john@email.com) - 2x Laptop ($1,200 each) = $2,400 total",
-    "facts": {
-        "order_id": {"expected": "ORD-2024-789", "extractor": "regex", "pattern": r"#?(ORD-\d{4}-\d{3})"},
-        "customer_name": {"expected": "John Smith", "extractor": "regex", "pattern": r"for\s+([A-Za-z\s]+)\s+\("},
-        "customer_email": {"expected": "john@email.com", "extractor": "email"},
-        "product_quantity": {"expected": "2", "extractor": "regex", "pattern": r"(\d+)x\s+Laptop"},
-        "product_name": {"expected": "Laptop", "extractor": "regex", "pattern": r"\d+x\s+([A-Za-z]+)"},
-        "unit_price": {"expected": "1200", "extractor": "money"},
-        "total_amount": {"expected": "2400", "extractor": "money"}
-    }
-}
+def test_support_chatbot():
+    """Technical support chatbot test"""
 
-# Test various order processing responses
-candidates = [
-    "Order #ORD-2024-789 confirmed for John Smith (john@email.com) - 2x Laptop at $1,200 each = $2,400 total",
-    "John Smith's order ORD-2024-789: 2 Laptops for $1,200 each, total $2,400. Email: john@email.com",
-    "Order ORD-2024-789 processed. Customer: John Smith, 2x Laptop, $1,200 per unit, $2,400 total. Contact: john@email.com"
-]
+    scenario = create_scenario(
+        facts={
+            "user_id": {"expected": "12345", "extractor": "regex", "pattern": r"ID\s*(\d+)"},
+            "issue": {"expected": "login", "extractor": "categorical",
+                     "patterns": {"login": ["login", "sign in", "log in"]}}
+        },
+        semantic_reference="User ID 12345 reports login problem"
+    )
 
-# Generate comprehensive report
-result = validate_llm_candidates(
-    scenario=scenario,
-    candidates=candidates,
-    threshold=0.70,
-    generate_html_report=True,
-    html_title="E-commerce Order Processing Validation"
-)
+    candidates = [
+        "User ID 12345 has a login problem",
+        "User with ID 12345 cannot sign in to the system",
+    ]
 
-print(f"📊 Order processing report: {result['html_report_path']}")
-print(f"✅ Overall accuracy: {result['summary']['overall_accuracy']:.1%}")
+    result = validate_llm_candidates(
+        scenario=scenario,
+        candidates=candidates,
+        threshold=0.65,
+        generate_html_report=True,
+        html_title="Support Chatbot Test"
+    )
+
+    print(f"✅ Report generated: {result['html_report_path']}")
+    return result
+
+if __name__ == "__main__":
+    test_support_chatbot()
 ```
 
-### 🚀 CI/CD Integration
-
-Perfect for automated testing pipelines:
+**3. GitHub Actions Workflow (`.github/workflows/test-and-report.yml`):**
 
 ```yaml
-# GitHub Actions example
-- name: Run LLM Validation Tests
-  run: |
-    python -c "
-    from true_lies import validate_llm_candidates
-    scenario = {'name': 'CI Test', 'semantic_reference': 'Test data', 'facts': {}}
-    candidates = ['Test response 1', 'Test response 2']
-    result = validate_llm_candidates(scenario, candidates, generate_html_report=True)
-    print(f'Report: {result[\"html_report_path\"]}')
-    "
+name: LLM Validation with True Lies
 
-- name: Upload Validation Report
-  uses: actions/upload-artifact@v4
-  with:
-    name: llm-validation-report
-    path: "validation_report_*.html"
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install true-lies-validator
+          pip install -r requirements.txt
+
+      - name: Run tests and generate reports
+        run: |
+          python tests/test_chatbot.py
+
+      - name: Upload HTML reports as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: llm-validation-reports
+          path: |
+            *.html
+            true_lies_reporting/
+          retention-days: 30
+
+      - name: Publish reports to GitHub Pages (optional)
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          publish_branch: gh-pages
+          keep_files: false
 ```
+
+**4. View the reports:**
+
+- **As artifacts:** In GitHub Actions → Your workflow → Artifacts → Download `llm-validation-reports`
+- **On GitHub Pages:** Configure GitHub Pages and access `https://your-username.github.io/your-repo/`
+- **Live example:** [Demo True Lies](https://thefreerangetester.github.io/demo_truelies/)
+
+### 🎯 CI/CD Features with True Lies:
+
+- ✅ **Automatic execution** - Tests run on every push/PR
+- ✅ **Automatic HTML reports** - Generated and saved automatically
+- ✅ **Preserved history** - Historical data maintained in `true_lies_reporting/`
+- ✅ **GitHub Pages publishing** - Reports accessible from any browser
+- ✅ **Trends and metrics** - Dashboards with automatic temporal analysis
+- ✅ **No complex setup** - Just add the workflow and run your tests
 
 ## 📈 Automatic Metrics
 
@@ -322,94 +391,19 @@ Perfect for automated testing pipelines:
 - **Evaluation**: A, B, C, D, F (automatic grading)
 - **Details per Fact**: What was found and what wasn't
 
-## 🚀 Complete Examples
-
-### Example 1: Support Chatbot
-```python
-from true_lies import ConversationValidator
-
-def test_support_chatbot():
-    conv = ConversationValidator()
-    
-    # Turn 1: User reports problem
-    conv.add_turn_and_report(
-        user_input="My app doesn't work, I'm user ID 12345",
-        bot_response="Hello, I'll help you. What error do you see?",
-        expected_facts={'user_id': '12345', 'issue_type': 'app_not_working'},
-        title="Turn 1: User reports problem"
-    )
-    
-    # Turn 2: User provides details
-    conv.add_turn_and_report(
-        user_input="Error 500 on login, email john@company.com",
-        bot_response="I understand, error 500 on login. Checking your account.",
-        expected_facts={'error_code': '500', 'email': 'john@company.com'},
-        title="Turn 2: User provides details"
-    )
-    
-    # Final test
-    final_response = "John (ID 12345), your error 500 will be fixed in 2 hours"
-    retention = conv.validate_and_report(
-        response=final_response,
-        facts_to_check=['user_id', 'error_code', 'email'],
-        title="Context Retention Test"
-    )
-    
-    return retention['retention_score'] >= 0.8
-
-if __name__ == "__main__":
-    test_support_chatbot()
-```
-
-### Example 2: E-commerce
-```python
-from true_lies import ConversationValidator
-
-def test_ecommerce_chatbot():
-    conv = ConversationValidator()
-    
-    # Turn 1: Customer identifies themselves
-    conv.add_turn_and_report(
-        user_input="Hello, I'm Maria Gonzalez, email maria@store.com, I want to buy a laptop",
-        bot_response="Hello Maria! I'll help you with the laptop. Registered email: maria@store.com",
-        expected_facts={'customer_name': 'Maria Gonzalez', 'email': 'maria@store.com', 'product_interest': 'laptop'},
-        title="Turn 1: Customer identifies themselves"
-    )
-    
-    # Turn 2: Customer specifies budget
-    conv.add_turn_and_report(
-        user_input="My budget is $1500, I need it for programming",
-        bot_response="Perfect Maria, we have laptops for programming in that range. I'll send options to maria@store.com",
-        expected_facts={'budget': '1500', 'use_case': 'programming'},
-        title="Turn 2: Customer specifies budget"
-    )
-    
-    # Final test
-    final_response = "Maria, your programming laptop for $1500 is ready. I'll send the invoice to maria@store.com"
-    retention = conv.validate_and_report(
-        response=final_response,
-        facts_to_check=['customer_name', 'email', 'budget', 'use_case'],
-        title="E-commerce Retention Test"
-    )
-    
-    return retention['retention_score'] >= 0.8
-
-if __name__ == "__main__":
-    test_ecommerce_chatbot()
-```
-
 ## 🔍 Advanced Validation (Optional)
 
-For more complex cases, you can also use traditional validation:
+For more complex cases, you can also use traditional validation with scenarios:
 
 ```python
 from true_lies import create_scenario, validate_llm_candidates
 
 # Facts that MUST be in the response
 facts = {
-    'policy_number': {'extractor': 'categorical', 'expected': 'POL-2024-001'},
+    'policy_number': {'extractor': 'regex', 'expected': 'POL-2024-001', 'pattern': r'POL-\d{4}-\d{3}'},
     'premium': {'extractor': 'money', 'expected': '850.00'},
-    'coverage_type': {'extractor': 'categorical', 'expected': 'auto insurance'}
+    'coverage_type': {'extractor': 'categorical', 'expected': 'auto insurance',
+                      'patterns': {'auto insurance': ['auto insurance', 'car insurance']}}
 }
 
 # Reference text for semantic comparison
@@ -431,23 +425,27 @@ candidates = [
 results = validate_llm_candidates(
     scenario=scenario,
     candidates=candidates,
-    threshold=0.7
+    threshold=0.7,
+    generate_html_report=True
 )
 ```
 
 ### 🎯 Advanced Features
 
 **Automatic Fact Weighting:**
+
 - Values in your `expected` facts are automatically weighted
 - Significant improvement in similarity scores (+55% in typical cases)
 - No additional configuration needed
 
 **Improved Polarity Detection:**
+
 - Correctly detects negative phrases with "not", "does not", "don't", etc.
 - Patterns in English and Spanish
 - Avoids false positives with substrings
 
 **Optimized Semantic Mappings:**
+
 - Use simple and specific mappings
 - Avoid over-mapping that can worsen scores
 - Recommendation: minimal mappings or no mappings
@@ -455,9 +453,10 @@ results = validate_llm_candidates(
 ### 💡 Best Practices
 
 **1. Fact Configuration:**
+
 ```python
 # ✅ CORRECT - For specific numbers
-'account_number': {'extractor': 'number', 'expected': '2992'}
+'account_number': {'extractor': 'regex', 'expected': '2992', 'pattern': r'\d+'}
 
 # ❌ INCORRECT - For specific numbers
 'account_number': {'extractor': 'categorical', 'expected': '2992'}
@@ -467,11 +466,12 @@ results = validate_llm_candidates(
 ```
 
 **2. Semantic Mappings:**
+
 ```python
 # ✅ CORRECT - Simple mappings
 semantic_mappings = {
     "account": ["cuenta"],
-    "balance": ["saldo", "monto"]
+    "balance": ["saldo", "amount"]
 }
 
 # ❌ INCORRECT - Excessive mappings
@@ -481,59 +481,55 @@ semantic_mappings = {
 ```
 
 **3. Thresholds:**
+
 - **0.6-0.7**: For strict validation
 - **0.5-0.6**: For permissive validation
 - **0.8+**: Only for exact cases
 
 ## 🎯 Available Extractors
 
-- **`money`**: Monetary values ($1,234.56, USD 27, 100 dollars) - **Improved v0.6.2+**
+- **`money`**: Monetary values ($1,234.56, USD 27, 100 dollars) [[memory:7971937]]
 - **`number`**: General numbers (25, 3.14, 1000)
-- **`categorical`**: Categorical values with synonyms - **Improved v0.6.2+**
+- **`categorical`**: Categorical values with synonyms [[memory:7877404]]
 - **`email`**: Email addresses
 - **`phone`**: Phone numbers
 - **`hours`**: Time schedules (9:00 AM, 14:30, 3:00 PM)
 - **`id`**: Identifiers (USER-001, POL-2024-001)
 - **`regex`**: Custom patterns
 
-### 🔧 Extractor Improvements (v0.6.2+)
+### 🔧 Extractor Improvements
 
 **Improved `money` extractor:**
+
 - Prioritizes amounts with currency symbols ($, USD, dollars)
 - Avoids capturing non-monetary numbers
 - Better accuracy in banking scenarios
+- Uses the `money` key exclusively (not `currency` or other aliases)
 
 **Improved `categorical` extractor:**
+
 - Whole word matches (avoids false positives)
 - Better detection of specific patterns
 - Compatible with exact expected values
-
-## 📚 Complete Documentation
-
-- **[Multi-turn Validation Guide](MULTITURN_VALIDATION_README.md)** - Complete details
-- **[Integration Guide](INTEGRATION_GUIDE.md)** - How to integrate into your project
-- **[Email Extraction Guide](EMAIL_EXTRACTION_GUIDE.md)** - Advanced extraction
-- **[Before/After Comparison](COMPARISON_BEFORE_AFTER.md)** - Library improvements
-- **[HTML Reporter Guide](HTML_REPORTER_README.md)** - Complete HTML reporting documentation
+- Domain-agnostic - use categorical patterns for domain-specific needs
 
 ## 🎯 Examples & Demos
 
-### HTML Reporter Examples
+### Available Examples
+
 - **[Basic HTML Report](examples/html_report_example.py)** - Simple report generation
 - **[Advanced Filters Demo](examples/advanced_filters_demo.py)** - Advanced filtering capabilities
 - **[Temporal Analysis Demo](examples/temporal_analysis_demo.py)** - Temporal analysis features
 - **[Advanced Search Demo](examples/advanced_search_demo.py)** - Real-time search functionality
 - **[PDF Export Demo](examples/pdf_export_demo.py)** - PDF export capabilities
 
-### CI/CD Integration Examples
-- **[GitHub Actions](.github/workflows/chatbot-validation.yml)** - Automated testing workflow
-- **[Jenkins Pipeline](ci_cd/Jenkinsfile)** - Jenkins integration
-- **[GitLab CI](.gitlab-ci.yml)** - GitLab CI configuration
-- **[Test Runner](ci_cd/run_tests_and_report.py)** - Automated test execution
+### Real CI/CD Example
 
-## 🛠️ Diagnostic Tools
+- **[Demo True Lies](https://github.com/TheFreeRangeTester/demo_truelies)** - Complete project with GitHub Actions
+- **[Live Reports](https://thefreerangetester.github.io/demo_truelies/)** - Reports published on GitHub Pages
 
-### Diagnostic Tool
+## 🛠️ Diagnostic Tool
+
 To diagnose similarity and extraction issues:
 
 ```python
@@ -541,8 +537,8 @@ from diagnostic_tool import run_custom_diagnosis
 
 # Your configuration
 fact_configs = {
-    'account_number': {'extractor': 'number', 'expected': '2992'},
-    'balance_amount': {'extractor': 'money', 'expected': '3,000.60'}
+    'account_number': {'extractor': 'regex', 'expected': '2992', 'pattern': r'\d+'},
+    'balance_amount': {'extractor': 'money', 'expected': '3000.60'}
 }
 candidates = ["Your account 2992 has $3,000.60"]
 
@@ -556,31 +552,52 @@ run_custom_diagnosis(
 
 ## 🔄 Changelog
 
-### v0.7.0 (Current)
-- ✅ **NEW: HTML Reporter** - Professional HTML reports with interactive dashboards
-- ✅ **NEW: Interactive Charts** - Chart.js integration for visual analytics
-- ✅ **NEW: Advanced Filtering** - Real-time search and filtering capabilities
-- ✅ **NEW: Temporal Analysis** - Daily/Weekly/Monthly performance tracking
-- ✅ **NEW: PDF Export** - High-quality PDF reports with full formatting
-- ✅ **NEW: CI/CD Integration** - GitHub Actions, Jenkins, GitLab CI support
-- ✅ **NEW: Detailed Test Information** - User input, bot response, expected response comparison
-- ✅ **NEW: Responsive Design** - Mobile-friendly professional interface
+### v0.8.0 (Current) - 2024-12-31
 
-### v0.6.4
-- ✅ Improved polarity detection (detects "not", "does not", etc.)
-- ✅ Complete negative patterns in English and Spanish
-- ✅ Avoids false positives with substrings
+**🎨 Interactive Dashboard Improvements:**
 
-### v0.6.3
-- ✅ Duplicate function removed
-- ✅ Consistent API
-- ✅ Clean code
+- ✅ Interactive expand/collapse functionality for "View Details" buttons
+- ✅ Dynamic button text changes ("View Details" ↔ "Hide Details")
+- ✅ Visual feedback with button color changes (blue → red when expanded)
+- ✅ Card-style styling with left border and smooth transitions
+- ✅ Professional styling for detailed test information
 
-### v0.6.2
-- ✅ Automatic fact weighting
-- ✅ Improved similarity (+55% in typical cases)
-- ✅ Improved money extractor
-- ✅ English reporting
+**📊 Enhanced Analytics & Visualizations:**
+
+- ✅ Similarity Score Trend chart showing semantic similarity over time
+- ✅ Fact Retention Trend chart tracking percentage of facts retained
+- ✅ Performance Trend with configurable target line
+- ✅ Historical data persistence in `true_lies_reporting/validation_history.json`
+- ✅ Automatic data cleanup (30-day retention policy)
+
+**🚀 Simplified HTML Report Generation:**
+
+- ✅ One-line HTML report generation with `generate_html_report=True` parameter
+- ✅ Automatic file naming with timestamps
+- ✅ Integration with `validate_llm_candidates` function
+- ✅ Streamlined API for report generation
+
+**🔧 Interactive Table Improvements:**
+
+- ✅ Sortable columns with click-to-sort functionality
+- ✅ Toggle between ascending and descending order
+- ✅ Row filtering to handle inconsistent table structures
+- ✅ Visual sort indicators (↕, ↑, ↓) on column headers
+
+### v0.7.0 - 2024-12-30
+
+- ✅ **HTML Reporter** - Professional HTML reports with interactive dashboards
+- ✅ **Interactive Charts** - Chart.js integration for visual analytics
+- ✅ **Advanced Filtering** - Real-time search and filtering capabilities
+- ✅ **Temporal Analysis** - Daily/Weekly/Monthly performance tracking
+- ✅ **CI/CD Integration** - GitHub Actions, Jenkins, GitLab CI support
+
+### v0.6.0 - 2024-12-29
+
+- ✅ Multi-turn conversation validation
+- ✅ Automatic fact extraction and validation
+- ✅ Comprehensive reporting system
+- ✅ Support for various data types (emails, money, dates, IDs)
 
 ## 🤝 Contributing
 
@@ -605,4 +622,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **True Lies - Where AI meets reality** 🎭
 
-*Have questions? Open an issue or contact the development team.*
+_Have questions? Open an issue or contact the development team._
