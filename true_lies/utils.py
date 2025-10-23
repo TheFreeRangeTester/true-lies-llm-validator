@@ -8,26 +8,6 @@ Solo contiene extractores genéricos y la función extract_fact como en la image
 
 import re
 from difflib import SequenceMatcher
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from nltk.stem import WordNetLemmatizer
-
-# Descargar recursos de NLTK si no están disponibles
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
-
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords')
-
-try:
-    nltk.data.find('corpora/wordnet')
-except LookupError:
-    nltk.download('wordnet')
 
 # ============================================================================
 # EXTRACTORES GENÉRICOS REUTILIZABLES

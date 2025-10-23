@@ -4,7 +4,7 @@ setup(
     name="true-lies-validator",
     version="0.8.0",
     packages=find_packages(),
-    install_requires=["nltk"],
+    install_requires=[],
     description="True Lies - Separating truth from AI fiction. A powerful library for detecting LLM hallucinations, validating AI responses, and generating professional HTML reports with interactive dashboards.",
     author="Pato Miner",
     author_email="patominer@gmail.com",

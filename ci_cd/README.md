@@ -240,7 +240,7 @@ wait
 
    ```bash
    # Install required packages
-   pip install requests nltk
+   pip install requests
    ```
 
 3. **Test Suite Not Found**:
