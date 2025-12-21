@@ -37,11 +37,12 @@ def apply_semantic_mappings(text, mappings):
 
 def calculate_semantic_similarity(text1, text2, fact_weights=None):
     """
-    Calcula la similitud semántica entre dos textos usando un algoritmo mejorado.
+    Calcula la similitud semántica entre dos textos usando un algoritmo mejorado
+    que penaliza las adiciones no deseadas (posibles alucinaciones).
     
     Args:
-        text1: Primer texto
-        text2: Segundo texto
+        text1: Primer texto (referencia)
+        text2: Segundo texto (candidato)
         fact_weights: Diccionario con pesos para tokens importantes (opcional)
     
     Returns:
@@ -67,6 +68,30 @@ def calculate_semantic_similarity(text1, text2, fact_weights=None):
     
     # Score base de overlap de tokens
     token_score = len(common_tokens) / len(total_tokens) if total_tokens else 0
+    
+    # PENALIZACIÓN POR ADICIONES: Detectar posibles alucinaciones
+    tokens_only_in_candidate = tokens2 - tokens1
+    tokens_only_in_reference = tokens1 - tokens2
+    
+    # Calcular penalización por adiciones excesivas
+    addition_penalty = 0.0
+    if len(tokens1) > 0:
+        addition_ratio = len(tokens_only_in_candidate) / len(tokens1)
+        
+        # Aplicar penalización progresiva:
+        # - 0-10% adicionales: sin penalización
+        # - 10-30% adicionales: penalización moderada
+        # - >30% adicionales: penalización fuerte
+        if addition_ratio > 0.1:
+            if addition_ratio <= 0.3:
+                # Penalización moderada: 10-30% adicionales
+                addition_penalty = (addition_ratio - 0.1) * 0.5
+            else:
+                # Penalización fuerte: >30% adicionales
+                addition_penalty = 0.1 + (addition_ratio - 0.3) * 1.5
+    
+    # Aplicar penalización al score de tokens
+    token_score = max(token_score - addition_penalty, 0.0)
     
     # Score de secuencia (menos peso)
     sequence_score = SequenceMatcher(None, text1_norm, text2_norm).ratio()

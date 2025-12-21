@@ -83,6 +83,6 @@ __all__ = [
 ]
 
 # Información del paquete
-__version__ = "0.8.0"
+__version__ = "0.9.1"
 __author__ = "True Lies Team"
 __description__ = "Separating truth from AI fiction - A powerful library for detecting LLM hallucinations"

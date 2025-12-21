@@ -150,8 +150,10 @@ def extract_date(text):
         (r'(\d{1,2}-\d{1,2}(?:-\d{4})?)', 'numeric'),
         # Con ordinales: "25th December 2024" - más específico
         (r'(\d{1,2})(?:st|nd|rd|th)\s+([A-Za-z]+)\s+(\d{4})', 'ordinal_3'),
-        # Con ordinales: "25th December"
-        (r'(\d{1,2})(?:st|nd|rd|th)\s+([A-Za-z]+)', 'ordinal_2'),
+        # Con ordinales: "25th December" - solo con meses conocidos
+        (r'(\d{1,2})(?:st|nd|rd|th)\s+(January|February|March|April|May|June|July|August|September|October|November|December|Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)', 'ordinal_2'),
+        # Con ordinales: "October 10th" - orden inverso
+        (r'(January|February|March|April|May|June|July|August|September|October|November|December|Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+(\d{1,2})(?:st|nd|rd|th)', 'ordinal_2_rev'),
         # Con ordinales: "December 25th, 2024"
         (r'([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th),\s*(\d{4})', 'ordinal_3_rev'),
         # Con ordinales: "December 25th"
@@ -406,6 +408,68 @@ def extract_usd_amount(text):
     """Wrapper que devuelve solo el monto sin prefijo USD"""
     return extract_money(text, format='number')
 
+def extract_person(text):
+    """
+    Extrae nombres de personas del texto.
+    """
+    import re
+    
+    # Patrones para nombres de personas
+    patterns = [
+        r'Dr\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',  # Dr. Garcia, Dr Garcia
+        r'Mr\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',   # Mr. Smith
+        r'Ms\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',   # Ms. Johnson
+        r'Mrs\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',  # Mrs. Brown
+        r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',           # Nombre simple
+    ]
+    
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        if matches:
+            return matches[0]
+    
+    return None
+
+def extract_time(text):
+    """
+    Extrae horas del texto.
+    """
+    import re
+    
+    # Patrones para horas
+    patterns = [
+        r'(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm))',  # 2:30 PM
+        r'(\d{1,2}\s*(?:AM|PM|am|pm))',         # 2 PM
+        r'(\d{1,2}:\d{2})',                     # 14:30
+    ]
+    
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        if matches:
+            return matches[0]
+    
+    return None
+
+def extract_location(text):
+    """
+    Extrae ubicaciones del texto.
+    """
+    import re
+    
+    # Patrones para ubicaciones
+    patterns = [
+        r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Clinic|Hospital|Center|Office|Building))',  # Green Valley Clinic
+        r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Street|Avenue|Road|Boulevard))',           # Main Street
+        r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',                                            # Nombre de lugar simple
+    ]
+    
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        if matches:
+            return matches[0]
+    
+    return None
+
 GENERIC_EXTRACTORS = {
     'money': extract_money,  # Función unificada para dinero
     'percentage': extract_percentage,
@@ -416,7 +480,10 @@ GENERIC_EXTRACTORS = {
     'hours': extract_hours,
     'email': extract_email,
     'phone': extract_phone,
-    'id': extract_id
+    'id': extract_id,
+    'person': extract_person,    # Nuevo extractor para personas
+    'time': extract_time,        # Nuevo extractor para horas
+    'location': extract_location # Nuevo extractor para ubicaciones
 }
 
 # ============================================================================
@@ -560,11 +627,12 @@ def apply_semantic_mappings(text, mappings):
 
 def calculate_semantic_similarity(text1, text2, fact_weights=None):
     """
-    Calcula la similitud semántica entre dos textos usando un algoritmo mejorado.
+    Calcula la similitud semántica entre dos textos usando un algoritmo mejorado
+    que penaliza las adiciones no deseadas (posibles alucinaciones).
     
     Args:
-        text1: Primer texto
-        text2: Segundo texto
+        text1: Primer texto (referencia)
+        text2: Segundo texto (candidato)
         fact_weights: Diccionario con pesos para tokens importantes (opcional)
     
     Returns:
@@ -590,6 +658,30 @@ def calculate_semantic_similarity(text1, text2, fact_weights=None):
     
     # Score base de overlap de tokens
     token_score = len(common_tokens) / len(total_tokens) if total_tokens else 0
+    
+    # PENALIZACIÓN POR ADICIONES: Detectar posibles alucinaciones
+    tokens_only_in_candidate = tokens2 - tokens1
+    tokens_only_in_reference = tokens1 - tokens2
+    
+    # Calcular penalización por adiciones excesivas
+    addition_penalty = 0.0
+    if len(tokens1) > 0:
+        addition_ratio = len(tokens_only_in_candidate) / len(tokens1)
+        
+        # Aplicar penalización progresiva:
+        # - 0-10% adicionales: sin penalización
+        # - 10-30% adicionales: penalización moderada
+        # - >30% adicionales: penalización fuerte
+        if addition_ratio > 0.1:
+            if addition_ratio <= 0.3:
+                # Penalización moderada: 10-30% adicionales
+                addition_penalty = (addition_ratio - 0.1) * 0.5
+            else:
+                # Penalización fuerte: >30% adicionales
+                addition_penalty = 0.1 + (addition_ratio - 0.3) * 1.5
+    
+    # Aplicar penalización al score de tokens
+    token_score = max(token_score - addition_penalty, 0.0)
     
     # Score de secuencia (menos peso)
     sequence_score = SequenceMatcher(None, text1_norm, text2_norm).ratio()
