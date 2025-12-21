@@ -119,6 +119,12 @@ class HTMLReporter:
                         'accuracy': value
                     }
             
+            # Get query from scenario name (preferred) or semantic_reference (fallback)
+            query_text = ''
+            if scenario:
+                # Prefer scenario name (the actual query/question) over semantic_reference
+                query_text = scenario.get('name', '') or scenario.get('semantic_reference', '')
+            
             # Create normalized result
             normalized_result = {
                 'test_name': f"Candidate {item['index']}",
@@ -135,7 +141,7 @@ class HTMLReporter:
                 'reference_polarity': result_data.get('reference_polarity', 'neutral'),
                 'candidate_polarity': result_data.get('candidate_polarity', 'neutral'),
                 'failure_reason': result_data.get('failure_reason', ''),
-                'query': scenario.get('semantic_reference', '') if scenario else ''
+                'query': query_text
             }
             
             normalized.append(normalized_result)
@@ -542,6 +548,15 @@ class HTMLReporter:
                 <div><strong>Timestamp:</strong> {result.get('timestamp', 'N/A')}</div>
             </div>
         """)
+        
+        # Show query prominently if available
+        if result.get('query'):
+            details.append(f"""
+            <div class="query-section">
+                <h4>🔍 Query / Question</h4>
+                <div class="query-display">{result.get('query')}</div>
+            </div>
+            """)
         
         # Details by specific fact
         fact_details = []
@@ -1495,6 +1510,32 @@ class HTMLReporter:
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
+        }
+        
+        .query-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #9c27b0;
+            margin-bottom: 20px;
+        }
+        
+        .query-section h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+        
+        .query-display {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #333;
+            border: 1px solid #e9ecef;
         }
         
         .fact-detail {
