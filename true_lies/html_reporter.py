@@ -134,7 +134,8 @@ class HTMLReporter:
                 'polarity_match': result_data.get('polarity_match', False),
                 'reference_polarity': result_data.get('reference_polarity', 'neutral'),
                 'candidate_polarity': result_data.get('candidate_polarity', 'neutral'),
-                'failure_reason': result_data.get('failure_reason', '')
+                'failure_reason': result_data.get('failure_reason', ''),
+                'query': scenario.get('semantic_reference', '') if scenario else ''
             }
             
             normalized.append(normalized_result)
@@ -624,11 +625,19 @@ class HTMLReporter:
             """)
         
         # Input and response texts
-        if 'user_input' in result or 'bot_response' in result or 'expected_response' in result or 'candidate_text' in result:
+        if 'user_input' in result or 'bot_response' in result or 'expected_response' in result or 'candidate_text' in result or 'query' in result:
             details.append("""
             <h4>Texts</h4>
             <div class="conversation-texts">
             """)
+            
+            if 'query' in result and result['query']:
+                details.append(f"""
+                <div class="text-section">
+                    <h5>🔍 Query / Reference:</h5>
+                    <div class="text-content query-text">{result['query']}</div>
+                </div>
+                """)
             
             if 'candidate_text' in result:
                 details.append(f"""
@@ -1552,6 +1561,10 @@ class HTMLReporter:
             max-height: 200px;
             overflow-y: auto;
             border-left: 4px solid #007bff;
+        }
+        
+        .text-content.query-text {
+            border-left-color: #9c27b0;
         }
         
         .text-content.user-input {
