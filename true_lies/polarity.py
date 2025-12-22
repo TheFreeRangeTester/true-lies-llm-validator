@@ -68,8 +68,30 @@ def detect_polarity(text):
     
     text_lower = text.lower()
     
-    # Dividir en palabras completas para evitar falsos positivos con subcadenas
-    words = re.findall(r'\b\w+\b', text_lower)
+    # Primero buscar frases de múltiples palabras y contracciones (más específicas)
+    # Esto incluye patrones como "does not", "do not", "won't", "don't", etc.
+    multi_word_patterns = [p for p in POLARITY_PATTERNS['negative'] if ' ' in p or "'" in p]
+    for pattern in multi_word_patterns:
+        # Escapar caracteres especiales para regex
+        pattern_escaped = re.escape(pattern)
+        if re.search(r'\b' + pattern_escaped + r'\b', text_lower):
+            return 'negative'
+    
+    multi_word_patterns = [p for p in POLARITY_PATTERNS['positive'] if ' ' in p or "'" in p]
+    for pattern in multi_word_patterns:
+        pattern_escaped = re.escape(pattern)
+        if re.search(r'\b' + pattern_escaped + r'\b', text_lower):
+            return 'positive'
+    
+    multi_word_patterns = [p for p in POLARITY_PATTERNS['neutral'] if ' ' in p or "'" in p]
+    for pattern in multi_word_patterns:
+        pattern_escaped = re.escape(pattern)
+        if re.search(r'\b' + pattern_escaped + r'\b', text_lower):
+            return 'neutral'
+    
+    # Luego buscar palabras individuales (incluyendo contracciones como parte de palabras)
+    # Usar un patrón que incluya apóstrofes para capturar contracciones
+    words = re.findall(r"\b[\w']+\b", text_lower)
     
     # Priorizar patrones negativos (más específicos) - usando palabras completas
     if any(word in POLARITY_PATTERNS['negative'] for word in words):
