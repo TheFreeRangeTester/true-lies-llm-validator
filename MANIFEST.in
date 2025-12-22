@@ -1,0 +1,4 @@
+include README.md
+include LICENSE
+recursive-include assets *.png
+recursive-include true_lies/semantic_data *.json

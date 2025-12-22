@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/logo.png" alt="True Lies Validator Logo" width="300">
+  <img src="https://raw.githubusercontent.com/TheFreeRangeTester/true-lies-llm-validator/main/assets/logo.png" alt="True Lies Validator Logo" width="300">
 </div>
 
 # True Lies Validator 🎭
