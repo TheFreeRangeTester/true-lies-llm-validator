@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/logo.png" alt="True Lies Validator Logo" width="300">
+</div>
+
 # True Lies Validator 🎭
 
 **The easiest library to validate LLM and chatbot responses**
