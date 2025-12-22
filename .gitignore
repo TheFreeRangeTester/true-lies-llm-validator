@@ -22,6 +22,7 @@ var/
 wheels/
 share/python-wheels/
 *.egg-info/
+true_lies_validator-*/
 .installed.cfg
 *.egg
 MANIFEST
@@ -110,6 +111,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+build_env/
+.venv_build/
 
 # Spyder project settings
 .spyderproject
