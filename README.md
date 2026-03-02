@@ -673,6 +673,21 @@ run_custom_diagnosis(
 - ✅ Comprehensive reporting system
 - ✅ Support for various data types (emails, money, dates, IDs)
 
+## 🛠️ Local Development
+
+Para correr tests y generar el reporte HTML rápidamente (útil para verificar cambios en el reporter):
+
+```bash
+# Instalar con dependencias de desarrollo
+pip install -e ".[dev]"
+
+# Tests + reporte HTML en un solo comando
+make quick-test
+# o: python scripts/quick_test.py
+```
+
+El reporte se genera en `true_lies_reporting/` — ábrelo en el navegador para ver Query, Reference (Baseline) y Candidate Text.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please:

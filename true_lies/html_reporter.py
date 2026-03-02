@@ -121,9 +121,12 @@ class HTMLReporter:
             
             # Get query from scenario name (preferred) or semantic_reference (fallback)
             query_text = ''
+            reference_text = ''
             if scenario:
                 # Prefer scenario name (the actual query/question) over semantic_reference
                 query_text = scenario.get('name', '') or scenario.get('semantic_reference', '')
+                # semantic_reference is the baseline text we compare against
+                reference_text = scenario.get('semantic_reference', '')
             
             # Create normalized result
             normalized_result = {
@@ -141,7 +144,12 @@ class HTMLReporter:
                 'reference_polarity': result_data.get('reference_polarity', 'neutral'),
                 'candidate_polarity': result_data.get('candidate_polarity', 'neutral'),
                 'failure_reason': result_data.get('failure_reason', ''),
-                'query': query_text
+                'query': query_text,
+                'reference_text': reference_text,
+                'semantic_precision': result_data.get('semantic_precision'),
+                'semantic_recall': result_data.get('semantic_recall'),
+                'semantic_f1': result_data.get('semantic_f1'),
+                'semantic_sequence_score': result_data.get('semantic_sequence_score'),
             }
             
             normalized.append(normalized_result)
@@ -338,7 +346,7 @@ class HTMLReporter:
         }};
         
         {self._get_sorting_javascript()}
-        
+        {self._get_pagination_javascript()}
         {self._get_charts_javascript(results, metrics)}
     </script>
 </body>
@@ -501,9 +509,9 @@ class HTMLReporter:
             
             # Create button and details row separately
             button_html = f'<button onclick="toggleDetails(\'{details_id}\')" class="btn-details" id="btn-{details_id}">View Details</button>' if show_details else 'N/A'
-            details_row = f'<tr id="{details_id}" class="details-row" style="display: none;"><td colspan="6">{details_content}</td></tr>' if show_details else ''
+            details_row = f'<tr id="{details_id}" class="details-row" data-candidate-id="{i}" style="display: none;"><td colspan="6">{details_content}</td></tr>' if show_details else ''
             
-            row = f"""<tr class="result-row">
+            row = f"""<tr class="result-row" data-candidate-id="{i}">
                 <td class="candidate-id">{i}</td>
                 <td class="score-cell {score_class}">{score:.3f}</td>
                 <td class="status-cell {status_class}">
@@ -519,12 +527,42 @@ class HTMLReporter:
             
             table_rows.append(row)
     
-        table_footer = """</tbody>
+        total_candidates = len(results)
+        pagination_html = self._generate_pagination_html(total_candidates)
+
+        table_footer = f"""</tbody>
         </table>
+        {pagination_html}
     </div>
 </div>"""
         
         return table_header + '\n'.join(table_rows) + table_footer
+
+    def _generate_pagination_html(self, total_candidates: int) -> str:
+        """Genera los controles de paginación."""
+        return f"""
+        <div class="pagination-controls">
+            <div class="pagination-left">
+                <label for="pageSizeSelect">Per page:</label>
+                <select id="pageSizeSelect" class="page-size-select">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span class="pagination-info" id="paginationInfo">
+                    Showing 1-{min(25, total_candidates)} of {total_candidates}
+                </span>
+            </div>
+            <div class="pagination-right">
+                <button type="button" class="btn-page" id="btnFirst" title="First">«</button>
+                <button type="button" class="btn-page" id="btnPrev" title="Previous">‹</button>
+                <span class="page-numbers" id="pageNumbers"></span>
+                <button type="button" class="btn-page" id="btnNext" title="Next">›</button>
+                <button type="button" class="btn-page" id="btnLast" title="Last">»</button>
+            </div>
+        </div>
+        """
     
     def _generate_candidate_details(self, result: Dict[str, Any]) -> str:
         """Generates expandable details for a candidate."""
@@ -535,9 +573,16 @@ class HTMLReporter:
         facts_retained = result.get('facts_retained', 0)
         total_facts = result.get('total_facts', 0)
         all_retained = result.get('all_retained', False)
+        status_label = 'PASS' if all_retained else 'FAIL'
+        status_class = 'status-pass' if all_retained else 'status-fail'
         
         details.append(f"""
         <div class="candidate-details">
+            <div class="candidate-summary">
+                <span class="candidate-status {status_class}">{status_label}</span>
+                <span class="candidate-score">Score: {retention_score}</span>
+                <span class="candidate-facts">Facts: {facts_retained}/{total_facts}</span>
+            </div>
             <h4>Test Information</h4>
             <div class="detail-grid">
                 <div><strong>Test Name:</strong> {result.get('test_name', 'N/A')}</div>
@@ -548,15 +593,6 @@ class HTMLReporter:
                 <div><strong>Timestamp:</strong> {result.get('timestamp', 'N/A')}</div>
             </div>
         """)
-        
-        # Show query prominently if available
-        if result.get('query'):
-            details.append(f"""
-            <div class="query-section">
-                <h4>🔍 Query / Question</h4>
-                <div class="query-display">{result.get('query')}</div>
-            </div>
-            """)
         
         # Details by specific fact
         fact_details = []
@@ -638,6 +674,27 @@ class HTMLReporter:
                 {f'<div class="failure-reason"><strong>Failure Reason:</strong> {failure_reason}</div>' if failure_reason else ''}
             </div>
             """)
+            
+            # Optional advanced semantic metrics (hidden inside details, for technical users)
+            semantic_f1 = result.get('semantic_f1')
+            semantic_precision = result.get('semantic_precision')
+            semantic_recall = result.get('semantic_recall')
+            
+            if semantic_f1 is not None and semantic_precision is not None and semantic_recall is not None:
+                f1_pct = semantic_f1 * 100
+                prec_pct = semantic_precision * 100
+                rec_pct = semantic_recall * 100
+                
+                details.append(f"""
+                <details class="semantic-advanced">
+                    <summary>Comparación semántica (avanzado)</summary>
+                    <div class="semantic-metrics">
+                        <div><strong>Coincidencia semántica global:</strong> {f1_pct:.1f}%</div>
+                        <div><strong>Precisión:</strong> {prec_pct:.1f}% &nbsp;&nbsp; <strong>Recall:</strong> {rec_pct:.1f}%</div>
+                        <div class="semantic-note">Sección para análisis interno; no está pensada para usuarios de negocio.</div>
+                    </div>
+                </details>
+                """)
         
         # Input and response texts
         if 'user_input' in result or 'bot_response' in result or 'expected_response' in result or 'candidate_text' in result or 'query' in result:
@@ -649,8 +706,15 @@ class HTMLReporter:
             if 'query' in result and result['query']:
                 details.append(f"""
                 <div class="text-section">
-                    <h5>🔍 Query / Reference:</h5>
+                    <h5>🔍 Query:</h5>
                     <div class="text-content query-text">{result['query']}</div>
+                </div>
+                """)
+            if 'reference_text' in result and result['reference_text']:
+                details.append(f"""
+                <div class="text-section">
+                    <h5>📋 Reference (Baseline):</h5>
+                    <div class="text-content reference-text">{result['reference_text']}</div>
                 </div>
                 """)
             
@@ -683,14 +747,6 @@ class HTMLReporter:
                 <div class="text-section">
                     <h5>Expected Response:</h5>
                     <div class="text-content expected-response">{result['expected_response']}</div>
-                </div>
-                """)
-            
-            if 'reference_text' in result:
-                details.append(f"""
-                <div class="text-section">
-                    <h5>Reference Text:</h5>
-                    <div class="text-content reference-text">{result['reference_text']}</div>
                 </div>
                 """)
             
@@ -847,12 +903,151 @@ class HTMLReporter:
             });
             
             console.log('Table sorted by column', columnIndex, 'in', sortOrder, 'order');
+            window.dispatchEvent(new CustomEvent('paginationRefresh'));
         }
         
         // Asegurar que el DOM esté cargado
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, sorting functions ready');
         });
+        """
+
+    def _get_pagination_javascript(self) -> str:
+        """Genera el JavaScript para la paginación de la tabla."""
+        return """
+        // Paginación
+        (function() {
+            function initPagination() {
+                const table = document.getElementById('resultsTable');
+                if (!table) return;
+                const tbody = table.querySelector('tbody');
+                if (!tbody) return;
+
+                let currentPage = 1;
+                let pageSize = parseInt(document.getElementById('pageSizeSelect')?.value || '25', 10);
+
+                function getResultRows() {
+                    return Array.from(tbody.querySelectorAll('tr.result-row'));
+                }
+
+                function getDetailsRow(resultRow) {
+                    let next = resultRow.nextElementSibling;
+                    while (next && !next.classList.contains('details-row')) {
+                        next = next.nextElementSibling;
+                    }
+                    return next;
+                }
+
+                function applyPagination() {
+                    const resultRows = getResultRows();
+                    const totalCandidates = resultRows.length;
+                    if (totalCandidates === 0) return;
+
+                    const totalPages = Math.ceil(totalCandidates / pageSize) || 1;
+                    currentPage = Math.min(Math.max(1, currentPage), totalPages);
+                    const startIdx = (currentPage - 1) * pageSize;
+                    const endIdx = Math.min(startIdx + pageSize, totalCandidates);
+
+                    resultRows.forEach((row, idx) => {
+                        const detailsRow = getDetailsRow(row);
+                        const visible = idx >= startIdx && idx < endIdx;
+                        row.style.display = visible ? '' : 'none';
+                        if (detailsRow) {
+                            detailsRow.style.display = visible ? 'none' : 'none';
+                            const btn = document.getElementById('btn-' + detailsRow.id);
+                            if (btn) {
+                                btn.textContent = 'View Details';
+                                btn.classList.remove('expanded');
+                            }
+                        }
+                    });
+
+                    updatePaginationUI(totalPages, startIdx, endIdx);
+                }
+
+                function updatePaginationUI(totalPages, startIdx, endIdx) {
+                    const infoEl = document.getElementById('paginationInfo');
+                    const pageNumbersEl = document.getElementById('pageNumbers');
+                    if (infoEl) {
+                        infoEl.textContent = 'Showing ' + (startIdx + 1) + '-' + endIdx + ' of ' + totalCandidates;
+                    }
+
+                    document.getElementById('btnFirst').disabled = currentPage <= 1;
+                    document.getElementById('btnPrev').disabled = currentPage <= 1;
+                    document.getElementById('btnNext').disabled = currentPage >= totalPages;
+                    document.getElementById('btnLast').disabled = currentPage >= totalPages;
+
+                    if (pageNumbersEl) {
+                        const maxVisible = 5;
+                        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                        if (endPage - startPage < maxVisible - 1) {
+                            startPage = Math.max(1, endPage - maxVisible + 1);
+                        }
+                        let html = '';
+                        if (startPage > 1) {
+                            html += '<button type="button" class="btn-page-num" data-page="1">1</button>';
+                            if (startPage > 2) html += '<span class="page-ellipsis">...</span>';
+                        }
+                        for (let p = startPage; p <= endPage; p++) {
+                            const cls = p === currentPage ? 'btn-page-num active' : 'btn-page-num';
+                            html += '<button type="button" class="' + cls + '" data-page="' + p + '">' + p + '</button>';
+                        }
+                        if (endPage < totalPages) {
+                            if (endPage < totalPages - 1) html += '<span class="page-ellipsis">...</span>';
+                            html += '<button type="button" class="btn-page-num" data-page="' + totalPages + '">' + totalPages + '</button>';
+                        }
+                        pageNumbersEl.innerHTML = html;
+                        pageNumbersEl.querySelectorAll('.btn-page-num').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                currentPage = parseInt(this.dataset.page, 10);
+                                applyPagination();
+                            });
+                        });
+                    }
+                }
+
+                document.getElementById('pageSizeSelect')?.addEventListener('change', function() {
+                    pageSize = parseInt(this.value, 10);
+                    currentPage = 1;
+                    applyPagination();
+                });
+
+                document.getElementById('btnFirst')?.addEventListener('click', function() {
+                    currentPage = 1;
+                    applyPagination();
+                });
+                document.getElementById('btnPrev')?.addEventListener('click', function() {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        applyPagination();
+                    }
+                });
+                document.getElementById('btnNext')?.addEventListener('click', function() {
+                    const totalCandidates = getResultRows().length;
+                    const totalPages = Math.ceil(totalCandidates / pageSize) || 1;
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        applyPagination();
+                    }
+                });
+                document.getElementById('btnLast')?.addEventListener('click', function() {
+                    const totalCandidates = getResultRows().length;
+                    currentPage = Math.ceil(totalCandidates / pageSize) || 1;
+                    applyPagination();
+                });
+
+                window.addEventListener('paginationRefresh', applyPagination);
+
+                applyPagination();
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initPagination);
+            } else {
+                initPagination();
+            }
+        })();
         """
 
     def _get_charts_javascript(self, results: List[Dict[str, Any]], metrics: Dict[str, Any]) -> str:
@@ -1102,14 +1297,36 @@ class HTMLReporter:
             const detailsRow = document.getElementById(detailsId);
             const button = document.getElementById('btn-' + detailsId);
             
-            if (detailsRow.style.display === 'none' || detailsRow.style.display === '') {{
+            if (!detailsRow || !button) {{
+                return;
+            }}
+            
+            const isOpening = detailsRow.style.display === 'none' || detailsRow.style.display === '';
+            
+            // Cerrar cualquier otro detalle abierto para mantener solo uno visible
+            const allDetailRows = document.querySelectorAll('.details-row');
+            allDetailRows.forEach(row => {{
+                row.style.display = 'none';
+                const btn = document.getElementById('btn-' + row.id);
+                if (btn) {{
+                    btn.textContent = 'View Details';
+                    btn.classList.remove('expanded');
+                }}
+            }});
+            
+            if (isOpening) {{
                 detailsRow.style.display = 'table-row';
                 button.textContent = 'Hide Details';
                 button.classList.add('expanded');
-            }} else {{
-                detailsRow.style.display = 'none';
-                button.textContent = 'View Details';
-                button.classList.remove('expanded');
+                // Desplazar suavemente la vista para que el inicio de la tarjeta
+                // (fila de detalles) quede alineado con la parte superior de la ventana
+                const rect = detailsRow.getBoundingClientRect();
+                const offset = 20; // pequeño margen desde el top
+                const targetY = window.scrollY + rect.top - offset;
+                window.scrollTo({{
+                    top: Math.max(targetY, 0),
+                    behavior: 'smooth'
+                }});
             }}
         }}
         
@@ -1391,6 +1608,101 @@ class HTMLReporter:
             overflow-x: auto;
         }
         
+        .pagination-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 15px 0;
+            margin-top: 10px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .pagination-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .pagination-left label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .page-size-select {
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .pagination-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .pagination-right {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .btn-page {
+            padding: 6px 12px;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #495057;
+        }
+        
+        .btn-page:hover:not(:disabled) {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+        
+        .btn-page:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .page-numbers {
+            display: flex;
+            gap: 3px;
+            margin: 0 5px;
+        }
+        
+        .btn-page-num {
+            min-width: 32px;
+            padding: 6px 10px;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+        
+        .btn-page-num:hover {
+            background: #e9ecef;
+        }
+        
+        .btn-page-num.active {
+            background: #007bff;
+            border-color: #007bff;
+            color: white;
+        }
+        
+        .page-ellipsis {
+            padding: 6px 4px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
         .results-table {
             width: 100%;
             border-collapse: collapse;
@@ -1489,6 +1801,34 @@ class HTMLReporter:
         .btn-details.expanded:hover {
             background: #c82333;
         }
+
+        .semantic-advanced {
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .semantic-advanced summary {
+            cursor: pointer;
+            color: #6c757d;
+        }
+
+        .semantic-advanced summary:hover {
+            color: #343a40;
+        }
+
+        .semantic-metrics {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+            border: 1px dashed #ced4da;
+        }
+
+        .semantic-note {
+            margin-top: 6px;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
         
         .details-row td {
             background: #f8f9fa;
@@ -1503,6 +1843,41 @@ class HTMLReporter:
         
         .candidate-details {
             padding: 20px;
+        }
+        
+        .candidate-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .candidate-status {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        
+        .status-pass {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .candidate-score,
+        .candidate-facts {
+            font-size: 0.9rem;
+            color: #495057;
         }
         
         .detail-grid {

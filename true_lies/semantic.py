@@ -6,8 +6,6 @@ Funciones Semánticas
 Funciones para manejo de mapeos semánticos y similitud.
 """
 
-from difflib import SequenceMatcher
-
 def apply_semantic_mappings(text, mappings):
     """
     Aplica mapeos semánticos para normalizar sinónimos en el texto.
@@ -35,10 +33,125 @@ def apply_semantic_mappings(text, mappings):
     
     return text_lower
 
+
+def _semantic_similarity_core(text1, text2, fact_weights=None):
+    """
+    Núcleo de cálculo de similitud semántica.
+    
+    Devuelve un diccionario con métricas intermedias y el score final.
+    """
+    import re
+    from difflib import SequenceMatcher
+    
+    if not isinstance(text1, str) or not isinstance(text2, str):
+        return {
+            "precision": 0.0,
+            "recall": 0.0,
+            "token_f1": 0.0,
+            "sequence_score": 0.0,
+            "weighted_f1": 0.0,
+            "final_score": 0.0,
+        }
+    
+    # Normalizar textos (remover puntuación, convertir a minúsculas)
+    text1_norm = re.sub(r"[^\w\s]", " ", text1.lower())
+    text2_norm = re.sub(r"[^\w\s]", " ", text2.lower())
+    
+    # Stopwords básicas en inglés y español (para reducir ruido)
+    stopwords = {
+        # Inglés
+        "the", "a", "an", "and", "or", "but", "if", "then", "else", "when", "while",
+        "for", "to", "from", "in", "on", "at", "of", "by", "with", "about", "as",
+        "this", "that", "these", "those", "it", "its", "is", "are", "was", "were",
+        "be", "been", "being", "do", "does", "did", "doing", "have", "has", "had",
+        "i", "you", "he", "she", "we", "they", "them", "him", "her", "my", "your",
+        "our", "their", "me", "us",
+        "please", "thanks", "thank", "sorry",
+        # Español
+        "el", "la", "los", "las", "un", "una", "unos", "unas",
+        "y", "o", "pero", "si", "entonces", "cuando", "mientras",
+        "para", "por", "con", "sin", "de", "del", "al", "en", "sobre",
+        "este", "esta", "estos", "estas", "eso", "esa", "esos", "esas", "esto",
+        "es", "son", "fue", "fueron", "ser", "estar", "está", "están", "estaba",
+        "tengo", "tiene", "tienes", "tenemos", "tienen",
+        "yo", "tu", "tú", "él", "ella", "nosotros", "nosotras", "ellos", "ellas",
+        "mi", "mis", "tu", "tus", "su", "sus", "nuestro", "nuestra", "nuestros", "nuestras",
+        "porfavor", "por", "favor", "gracias", "disculpa", "perdón",
+    }
+    
+    def content_tokens(text_norm: str):
+        """Obtiene tokens de contenido (sin stopwords, solo palabras significativas)."""
+        tokens = text_norm.split()
+        return [t for t in tokens if len(t) > 2 and t not in stopwords]
+    
+    # Tokens de contenido
+    tokens1_list = content_tokens(text1_norm)
+    tokens2_list = content_tokens(text2_norm)
+    tokens1 = set(tokens1_list)
+    tokens2 = set(tokens2_list)
+    
+    if not tokens1 and not tokens2:
+        # Fallback: si todo son stopwords / vacío, usar solo SequenceMatcher
+        sequence_score_only = SequenceMatcher(None, text1_norm, text2_norm).ratio()
+        return {
+            "precision": 0.0,
+            "recall": 0.0,
+            "token_f1": 0.0,
+            "sequence_score": float(sequence_score_only),
+            "weighted_f1": 0.0,
+            "final_score": float(sequence_score_only),
+        }
+    
+    # Calcular precision, recall y F1 sobre tokens de contenido
+    common_tokens = tokens1.intersection(tokens2)
+    precision = len(common_tokens) / len(tokens2) if tokens2 else 0.0
+    recall = len(common_tokens) / len(tokens1) if tokens1 else 0.0
+    
+    if precision + recall > 0:
+        token_f1 = 2 * precision * recall / (precision + recall)
+    else:
+        token_f1 = 0.0
+    
+    # Score de secuencia (menos peso), usando texto normalizado completo
+    sequence_score = SequenceMatcher(None, text1_norm, text2_norm).ratio()
+    
+    # Aplicar pesos a tokens importantes si se proporcionan
+    weighted_f1 = token_f1
+    if fact_weights:
+        # Pequeño bonus por cada token clave que está en el overlap
+        # Limitamos el bonus total para no inflar artificialmente el score
+        bonus = 0.0
+        for token, weight in fact_weights.items():
+            token_norm = token.lower()
+            if token_norm in common_tokens:
+                # Cada token clave aporta un bonus acotado
+                bonus += min(0.05 * weight, 0.15)
+        # Limitar bonus total
+        bonus = min(bonus, 0.25)
+        weighted_f1 = min(1.0, weighted_f1 + bonus)
+    
+    # Combinar scores (70% F1 ponderado, 30% secuencia)
+    final_score = (weighted_f1 * 0.7) + (sequence_score * 0.3)
+    final_score = float(min(max(final_score, 0.0), 1.0))
+    
+    return {
+        "precision": float(precision),
+        "recall": float(recall),
+        "token_f1": float(token_f1),
+        "sequence_score": float(sequence_score),
+        "weighted_f1": float(weighted_f1),
+        "final_score": final_score,
+    }
+
 def calculate_semantic_similarity(text1, text2, fact_weights=None):
     """
-    Calcula la similitud semántica entre dos textos usando un algoritmo mejorado
-    que penaliza las adiciones no deseadas (posibles alucinaciones).
+    Calcula la similitud semántica entre dos textos.
+    
+    Versión mejorada:
+    - Usa una métrica tipo F1 (precision/recall) sobre tokens de contenido
+    - Reduce el impacto de stopwords y frases de cortesía
+    - Sigue aprovechando SequenceMatcher como componente secundario
+    - Usa fact_weights para reforzar tokens clave sin inflar artificialmente el score
     
     Args:
         text1: Primer texto (referencia)
@@ -48,62 +161,14 @@ def calculate_semantic_similarity(text1, text2, fact_weights=None):
     Returns:
         float: Score de similitud entre 0 y 1
     """
-    import re
-    from difflib import SequenceMatcher
+    metrics = _semantic_similarity_core(text1, text2, fact_weights)
+    return metrics["final_score"]
+
+
+def calculate_semantic_similarity_metrics(text1, text2, fact_weights=None):
+    """
+    Calcula la similitud semántica y devuelve todas las métricas intermedias.
     
-    if not isinstance(text1, str) or not isinstance(text2, str):
-        return 0.0
-    
-    # Normalizar textos (remover puntuación, convertir a minúsculas)
-    text1_norm = re.sub(r'[^\w\s]', ' ', text1.lower())
-    text2_norm = re.sub(r'[^\w\s]', ' ', text2.lower())
-    
-    # Dividir en tokens
-    tokens1 = set(text1_norm.split())
-    tokens2 = set(text2_norm.split())
-    
-    # Calcular overlap de tokens
-    common_tokens = tokens1.intersection(tokens2)
-    total_tokens = tokens1.union(tokens2)
-    
-    # Score base de overlap de tokens
-    token_score = len(common_tokens) / len(total_tokens) if total_tokens else 0
-    
-    # PENALIZACIÓN POR ADICIONES: Detectar posibles alucinaciones
-    tokens_only_in_candidate = tokens2 - tokens1
-    tokens_only_in_reference = tokens1 - tokens2
-    
-    # Calcular penalización por adiciones excesivas
-    addition_penalty = 0.0
-    if len(tokens1) > 0:
-        addition_ratio = len(tokens_only_in_candidate) / len(tokens1)
-        
-        # Aplicar penalización progresiva:
-        # - 0-10% adicionales: sin penalización
-        # - 10-30% adicionales: penalización moderada
-        # - >30% adicionales: penalización fuerte
-        if addition_ratio > 0.1:
-            if addition_ratio <= 0.3:
-                # Penalización moderada: 10-30% adicionales
-                addition_penalty = (addition_ratio - 0.1) * 0.5
-            else:
-                # Penalización fuerte: >30% adicionales
-                addition_penalty = 0.1 + (addition_ratio - 0.3) * 1.5
-    
-    # Aplicar penalización al score de tokens
-    token_score = max(token_score - addition_penalty, 0.0)
-    
-    # Score de secuencia (menos peso)
-    sequence_score = SequenceMatcher(None, text1_norm, text2_norm).ratio()
-    
-    # Aplicar pesos a tokens importantes si se proporcionan
-    weighted_score = token_score
-    if fact_weights:
-        for token, weight in fact_weights.items():
-            if token in common_tokens:
-                weighted_score += weight * 0.1  # Bonus por tokens importantes
-    
-    # Combinar scores (70% tokens ponderados, 30% secuencia)
-    final_score = (weighted_score * 0.7) + (sequence_score * 0.3)
-    
-    return min(final_score, 1.0)  # Cap at 1.0
+    Útil para depuración y visualización avanzada en reportes.
+    """
+    return _semantic_similarity_core(text1, text2, fact_weights)

@@ -7,7 +7,7 @@ Función principal de validación como se muestra en las imágenes.
 """
 
 from .utils import extract_fact
-from .semantic import apply_semantic_mappings, calculate_semantic_similarity
+from .semantic import apply_semantic_mappings, calculate_semantic_similarity_metrics
 from .polarity import detect_polarity
 
 def validate_against_reference_dynamic(candidate_text, reference_scenario, similarity_threshold=0.8):
@@ -63,7 +63,8 @@ def validate_against_reference_dynamic(candidate_text, reference_scenario, simil
                     if len(word) > 2:  # Solo palabras significativas
                         fact_weights[word] = 1.5
     
-    similarity_score = calculate_semantic_similarity(reference_text, candidate_mapped, fact_weights)
+    semantic_metrics = calculate_semantic_similarity_metrics(reference_text, candidate_mapped, fact_weights)
+    similarity_score = semantic_metrics["final_score"]
     
     # Validación de polaridad con lógica personalizada
     reference_polarity = detect_polarity(reference_scenario['semantic_reference'])
@@ -113,5 +114,9 @@ def validate_against_reference_dynamic(candidate_text, reference_scenario, simil
         'candidate_polarity': candidate_polarity,
         'is_valid': is_valid,
         'failure_reason': failure_reason,
+        'semantic_precision': semantic_metrics.get("precision", 0.0),
+        'semantic_recall': semantic_metrics.get("recall", 0.0),
+        'semantic_f1': semantic_metrics.get("token_f1", 0.0),
+        'semantic_sequence_score': semantic_metrics.get("sequence_score", 0.0),
         **fact_results
     }
