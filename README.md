@@ -18,7 +18,7 @@ pip install true-lies-validator
 python -c "from true_lies import ConversationValidator, HTMLReporter; print('✅ Installed successfully')"
 ```
 
-> **📦 Current version: 0.8.0** - With interactive HTML reports, improved dashboards, and simplified CI/CD integration
+> **📦 Current version: 0.9.4** - Improved semantic validation (F1), pagination, enhanced report cards, and better UX
 
 ## ⚡ Get Started in 2 Minutes
 

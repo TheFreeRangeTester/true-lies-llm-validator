@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="true-lies-validator",
-    version="0.9.3",
+    version="0.9.4",
     packages=find_packages(),
     install_requires=[],
     description="True Lies - Separating truth from AI fiction. A powerful library for detecting LLM hallucinations, validating AI responses, and generating professional HTML reports with interactive dashboards.",
